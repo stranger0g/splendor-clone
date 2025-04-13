@@ -10,25 +10,40 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Enhanced Setup Screen -->
     <div id="setup-screen" class="active">
-        <h1>Splendor Setup</h1>
+        <div class="setup-content">
+            <h1 class="setup-title">Splendor Setup</h1>
+            <p class="setup-subtitle">Configure Your Game</p>
 
-        <label for="player-count">Number of Players:</label>
-        <select id="player-count">
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4" selected>4</option>
-        </select>
+            <div class="setup-option">
+                <label for="player-count" class="setup-label">Number of Players:</label>
+                <select id="player-count" class="setup-input">
+                    <option value="2">2 Players</option>
+                    <option value="3">3 Players</option>
+                    <option value="4" selected>4 Players</option>
+                </select>
+            </div>
 
-        <label for="timer-input">Turn Timer (minutes, 0 = off):</label>
-        <input type="number" id="timer-input" value="1.5" min="0" step="0.5">
+            <div class="setup-option">
+                <label for="timer-input" class="setup-label">Turn Timer (minutes, 0 = off):</label>
+                <input type="number" id="timer-input" value="1.5" min="0" step="0.5" class="setup-input">
+            </div>
 
-        <div id="player-names">
-            <!-- Input fields will be generated here -->
+             <div class="setup-option">
+                 <label class="setup-label">Player Names:</label>
+                 <div id="player-names">
+                    <!-- Input fields will be generated here -->
+                 </div>
+             </div>
+
+            <button id="start-game-btn" class="setup-start-button">
+                <span class="start-icon">▶</span> Start Game
+            </button>
         </div>
-        <button id="start-game-btn">Start Game</button>
     </div>
 
+    <!-- Game Container (Remains the same) -->
     <div id="game-container" class="hidden">
         <div id="game-board">
             <div id="top-bar">
@@ -48,7 +63,7 @@
                         <!-- Game messages will appear here -->
                     </div>
                      <button id="end-turn-early-btn" class="hidden">End Turn</button>
-                     <button id="dark-mode-toggle" title="Toggle Dark Mode">🌙</button> <!-- Add this button -->
+                     <!-- Dark mode toggle removed -->
                 </div>
             </div>
 
@@ -58,15 +73,12 @@
                     <div id="gem-bank" class="gems-container">
                         <!-- Gems will be rendered here -->
                     </div>
-                     <!-- Static action buttons removed -->
                      <div id="selection-info">
                         <p>Selected Gems: <span id="selected-gems-display">None</span></p>
                         <p>Selected Card: <span id="selected-card-display">None</span></p>
-                         <!-- Container for dynamic action buttons -->
                          <div id="dynamic-action-buttons" style="margin-top: 8px;">
                              <!-- Buttons like "Confirm Take Gems", "Purchase Card", "Reserve Card" will appear here -->
                          </div>
-                         <!-- Keep Cancel button static but initially hidden -->
                         <button id="cancel-action-btn" class="hidden" style="margin-top: 5px;">Cancel Selection</button>
                     </div>
                 </div>
@@ -101,7 +113,7 @@
             </div>
         </div>
 
-        <!-- Modals / Overlays -->
+        <!-- Modals / Overlays (Remain the same) -->
         <div id="return-gems-overlay" class="hidden">
             <div class="modal-content">
                 <h2>Return Gems</h2>
@@ -129,7 +141,6 @@
                 <div id="noble-choice-options" class="nobles-container">
                     <!-- Eligible nobles will be rendered here -->
                 </div>
-                <!-- No cancel button needed, choice is mandatory -->
             </div>
         </div>
         <!-- End Modals -->
