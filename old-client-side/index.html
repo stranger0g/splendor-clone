@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Enhanced Setup Screen -->
+    
     <div id="setup-screen" class="active">
         <div class="setup-content">
             <h1 class="setup-title">Splendor Setup</h1>
@@ -31,9 +31,9 @@
             </div>
 
              <div class="setup-option">
-                 <label class="setup-label">Player Names:</label>
+                 <label class="setup-label">Player Names & Themes:</label>
                  <div id="player-names">
-                    <!-- Input fields will be generated here -->
+                    
                  </div>
              </div>
 
@@ -43,14 +43,14 @@
         </div>
     </div>
 
-    <!-- Game Container (Remains the same) -->
+    
     <div id="game-container" class="hidden">
         <div id="game-board">
             <div id="top-bar">
                 <div id="nobles-area">
                     <h2>Nobles</h2>
                     <div class="nobles-container">
-                        <!-- Nobles will be rendered here -->
+                        
                     </div>
                 </div>
                 <div id="timer-area">
@@ -60,10 +60,9 @@
                 <div id="game-status">
                     <h2>Game Log</h2>
                     <div id="log-messages">
-                        <!-- Game messages will appear here -->
+                        
                     </div>
                      <button id="end-turn-early-btn" class="hidden">End Turn</button>
-                     <!-- Dark mode toggle removed -->
                 </div>
             </div>
 
@@ -71,55 +70,57 @@
                 <div id="bank-area">
                     <h2>Gem Bank</h2>
                     <div id="gem-bank" class="gems-container">
-                        <!-- Gems will be rendered here -->
+                        
                     </div>
                      <div id="selection-info">
-                        <p>Selected Gems: <span id="selected-gems-display">None</span></p>
-                        <p>Selected Card: <span id="selected-card-display">None</span></p>
+                        
+                        <p class="selection-text">Selected Gems: <span id="selected-gems-display">None</span></p>
+                        <p class="selection-text">Selected Card: <span id="selected-card-display">None</span></p>
                          <div id="dynamic-action-buttons" style="margin-top: 8px;">
-                             <!-- Buttons like "Confirm Take Gems", "Purchase Card", "Reserve Card" will appear here -->
+                             
                          </div>
-                        <button id="cancel-action-btn" class="hidden" style="margin-top: 5px;">Cancel Selection</button>
+                        
                     </div>
+                    
                 </div>
 
                 <div id="cards-area">
                     <div class="card-level-row" id="level-3-row">
                         <h3>Level 3</h3>
-                        <div class="deck" id="deck-3">Deck (<span id="deck-3-count">0</span>)</div>
+                        <div class="deck" id="deck-3" title="Level 3 Deck">Deck (<span id="deck-3-count">0</span>)</div>
                         <div class="visible-cards" id="visible-cards-3">
-                             <!-- Level 3 cards -->
+                             
                         </div>
                     </div>
                      <div class="card-level-row" id="level-2-row">
                         <h3>Level 2</h3>
-                        <div class="deck" id="deck-2">Deck (<span id="deck-2-count">0</span>)</div>
+                        <div class="deck" id="deck-2" title="Level 2 Deck">Deck (<span id="deck-2-count">0</span>)</div>
                         <div class="visible-cards" id="visible-cards-2">
-                             <!-- Level 2 cards -->
+                             
                         </div>
                     </div>
                      <div class="card-level-row" id="level-1-row">
                         <h3>Level 1</h3>
-                        <div class="deck" id="deck-1">Deck (<span id="deck-1-count">0</span>)</div>
+                        <div class="deck" id="deck-1" title="Level 1 Deck">Deck (<span id="deck-1-count">0</span>)</div>
                         <div class="visible-cards" id="visible-cards-1">
-                             <!-- Level 1 cards -->
+                             
                         </div>
                     </div>
                 </div>
             </div>
 
             <div id="players-area">
-                <!-- Player areas will be rendered here -->
+                
             </div>
         </div>
 
-        <!-- Modals / Overlays (Remain the same) -->
+        
         <div id="return-gems-overlay" class="hidden">
             <div class="modal-content">
                 <h2>Return Gems</h2>
-                <p>You have too many gems (<span id="return-gems-count">0</span>/10). Please select gems to return.</p>
+                <p>You have too many non-gold gems (<span id="return-gems-count">0</span>/10). Please select gems to return.</p>
                 <div id="return-gems-player-display" class="gems-container small-gems"></div>
-                <div id="return-gems-selection-display">Selected to return: </div>
+                <div id="return-gems-selection-display">Selected to return: 0/0</div>
                 <button id="confirm-return-gems-btn" disabled>Confirm Return</button>
             </div>
         </div>
@@ -128,7 +129,7 @@
             <div class="modal-content">
                 <h2>Game Over!</h2>
                 <div id="final-scores">
-                    <!-- Final scores will be displayed here -->
+                    
                 </div>
                 <button id="play-again-btn">Play Again</button>
             </div>
@@ -139,11 +140,11 @@
                 <h2>Choose Your Noble</h2>
                 <p>You qualify for multiple nobles. Please select one to visit:</p>
                 <div id="noble-choice-options" class="nobles-container">
-                    <!-- Eligible nobles will be rendered here -->
+                    
                 </div>
             </div>
         </div>
-        <!-- End Modals -->
+        
 
     </div>
 

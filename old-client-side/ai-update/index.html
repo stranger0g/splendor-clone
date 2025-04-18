@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Splendor Clone</title>
+    <title>Splendor Clone (AI Enhanced)</title>
     <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Enhanced Setup Screen -->
+
+    <!-- Setup Screen -->
     <div id="setup-screen" class="active">
         <div class="setup-content">
             <h1 class="setup-title">Splendor Setup</h1>
@@ -28,29 +29,46 @@
             <div class="setup-option">
                 <label for="timer-input" class="setup-label">Turn Timer (minutes, 0 = off):</label>
                 <input type="number" id="timer-input" value="1.5" min="0" step="0.5" class="setup-input">
+                <small>(Timer applies to Human players only)</small>
             </div>
 
              <div class="setup-option">
-                 <label class="setup-label">Player Names & Themes:</label>
+                 <label class="setup-label">Player Names, Themes & Types:</label>
                  <div id="player-names">
-                    <!-- Input fields and color selectors will be generated here by JS -->
+                    <!-- Player entries dynamically generated here -->
                  </div>
              </div>
+
+             <div class="setup-option">
+                <label class="setup-label setup-label-inline" for="simulation-mode">
+                    <input type="checkbox" id="simulation-mode"> Run AI vs. AI Simulation
+                </label>
+                <small>(All players will be set to AI, timer disabled)</small>
+             </div>
+
+             <div class="setup-option">
+                 <label for="simulation-speed" class="setup-label">Simulation Speed (ms delay):</label>
+                 <input type="number" id="simulation-speed" value="200" min="0" step="50" class="setup-input">
+                 <small>(Delay between AI turns in simulation mode. 0 for max speed.)</small>
+             </div>
+
 
             <button id="start-game-btn" class="setup-start-button">
                 <span class="start-icon">▶</span> Start Game
             </button>
+             <p id="api-key-status" style="margin-top: 15px; font-size: 0.9em; color: var(--text-tertiary);"></p>
         </div>
     </div>
 
     <!-- Game Container -->
     <div id="game-container" class="hidden">
         <div id="game-board">
+            <!-- Top Bar -->
             <div id="top-bar">
                 <div id="nobles-area">
                     <h2>Nobles</h2>
                     <div class="nobles-container">
-                        <!-- Nobles will be rendered here -->
+                        <!-- Nobles dynamically generated here -->
                     </div>
                 </div>
                 <div id="timer-area">
@@ -60,91 +78,103 @@
                 <div id="game-status">
                     <h2>Game Log</h2>
                     <div id="log-messages">
-                        <!-- Game messages will appear here -->
+                        <!-- Log messages dynamically generated here -->
                     </div>
                      <button id="end-turn-early-btn" class="hidden">End Turn</button>
+                     <button id="simulation-pause-btn" class="hidden">Pause Sim</button>
+                     <span id="simulation-status" class="hidden"></span>
                 </div>
             </div>
 
+            <!-- Main Area -->
             <div id="main-area">
                 <div id="bank-area">
                     <h2>Gem Bank</h2>
                     <div id="gem-bank" class="gems-container">
-                        <!-- Gems will be rendered here -->
+                        <!-- Bank gems dynamically generated here -->
                     </div>
                      <div id="selection-info">
-                        <!-- Card preview will appear here dynamically -->
+                        <!-- Selection details dynamically generated here -->
                         <p class="selection-text">Selected Gems: <span id="selected-gems-display">None</span></p>
                         <p class="selection-text">Selected Card: <span id="selected-card-display">None</span></p>
                          <div id="dynamic-action-buttons" style="margin-top: 8px;">
-                             <!-- Buttons like "Confirm Take Gems", "Purchase Card", "Reserve Card" will appear here -->
+                             <!-- Action buttons dynamically generated here -->
                          </div>
-                        <!-- Cancel button removed -->
                     </div>
-                    <!-- Separate card preview area removed -->
                 </div>
 
                 <div id="cards-area">
+                    <!-- Card Levels -->
                     <div class="card-level-row" id="level-3-row">
                         <h3>Level 3</h3>
                         <div class="deck" id="deck-3" title="Level 3 Deck">Deck (<span id="deck-3-count">0</span>)</div>
                         <div class="visible-cards" id="visible-cards-3">
-                             <!-- Level 3 cards -->
+                             <!-- Visible cards dynamically generated here -->
                         </div>
                     </div>
                      <div class="card-level-row" id="level-2-row">
                         <h3>Level 2</h3>
                         <div class="deck" id="deck-2" title="Level 2 Deck">Deck (<span id="deck-2-count">0</span>)</div>
                         <div class="visible-cards" id="visible-cards-2">
-                             <!-- Level 2 cards -->
+                             <!-- Visible cards dynamically generated here -->
                         </div>
                     </div>
                      <div class="card-level-row" id="level-1-row">
                         <h3>Level 1</h3>
                         <div class="deck" id="deck-1" title="Level 1 Deck">Deck (<span id="deck-1-count">0</span>)</div>
                         <div class="visible-cards" id="visible-cards-1">
-                             <!-- Level 1 cards -->
+                             <!-- Visible cards dynamically generated here -->
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Players Area -->
             <div id="players-area">
-                <!-- Player areas will be rendered here by JS -->
+                <!-- Player areas dynamically generated here -->
             </div>
         </div>
 
-        <!-- Modals / Overlays -->
-        <div id="return-gems-overlay" class="hidden">
+
+        <!-- Modals & Overlays -->
+        <div id="return-gems-overlay" class="hidden overlay-modal">
             <div class="modal-content">
                 <h2>Return Gems</h2>
-                <p>You have too many non-gold gems (<span id="return-gems-count">0</span>/10). Please select gems to return.</p>
+                <p>You have too many total tokens (<span id="return-gems-count">0</span>/10). Please select <span id="return-gems-needed">0</span> non-gold gems to return.</p>
                 <div id="return-gems-player-display" class="gems-container small-gems"></div>
                 <div id="return-gems-selection-display">Selected to return: 0/0</div>
                 <button id="confirm-return-gems-btn" disabled>Confirm Return</button>
             </div>
         </div>
 
-         <div id="game-over-overlay" class="hidden">
+         <div id="game-over-overlay" class="hidden overlay-modal">
             <div class="modal-content">
                 <h2>Game Over!</h2>
                 <div id="final-scores">
-                    <!-- Detailed final scores will be displayed here by JS -->
+                    <!-- Final scores dynamically generated here -->
                 </div>
                 <button id="play-again-btn">Play Again</button>
             </div>
         </div>
 
-        <div id="noble-choice-overlay" class="hidden">
+        <div id="noble-choice-overlay" class="hidden overlay-modal">
             <div class="modal-content">
                 <h2>Choose Your Noble</h2>
                 <p>You qualify for multiple nobles. Please select one to visit:</p>
                 <div id="noble-choice-options" class="nobles-container">
-                    <!-- Eligible nobles will be rendered here -->
+                    <!-- Noble choices dynamically generated here -->
                 </div>
             </div>
         </div>
-        <!-- End Modals -->
+
+        <!-- AI Thinking Overlay -->
+        <div id="ai-thinking-overlay" class="hidden overlay-fullscreen">
+            <div class="overlay-content">
+                <div class="spinner"></div>
+                <p>AI is thinking...</p>
+                <p id="ai-thinking-player-name"></p>
+            </div>
+        </div>
 
     </div>
 
