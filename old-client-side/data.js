@@ -1,11 +1,7 @@
 const GEM_TYPES = ['white', 'blue', 'green', 'red', 'black'];
 const GOLD = 'gold';
 
-
 const CARDS_DATA = [
-  
-  
-  
   { level: 1, color: 'black', vp: 0, cost: { white: 1, red: 1, blue: 1, green: 1 } },
   { level: 1, color: 'black', vp: 0, cost: { red: 1, green: 2 } },
   { level: 1, color: 'black', vp: 0, cost: { white: 2, green: 2 } },
@@ -27,9 +23,6 @@ const CARDS_DATA = [
   { level: 3, color: 'black', vp: 4, cost: { black: 3, red: 6, green: 3 } },
   { level: 3, color: 'black', vp: 5, cost: { black: 3, red: 7 } },
 
-  
-  
-  
   { level: 1, color: 'blue', vp: 0, cost: { black: 2, white: 1 } },
   { level: 1, color: 'blue', vp: 0, cost: { black: 1, white: 1, red: 2, green: 1 } },
   { level: 1, color: 'blue', vp: 0, cost: { black: 1, white: 1, red: 1 } },
@@ -51,9 +44,6 @@ const CARDS_DATA = [
   { level: 3, color: 'blue', vp: 4, cost: { black: 3, white: 6, blue: 3 } },
   { level: 3, color: 'blue', vp: 5, cost: { white: 7, blue: 3 } },
 
-  
-  
-  
   { level: 1, color: 'green', vp: 0, cost: { white: 2, blue: 1 } },
   { level: 1, color: 'green', vp: 0, cost: { blue: 2, red: 2 } },
   { level: 1, color: 'green', vp: 0, cost: { white: 1, blue: 3, red: 1 } },
@@ -75,9 +65,6 @@ const CARDS_DATA = [
   { level: 3, color: 'green', vp: 4, cost: { black: 3, blue: 6, green: 3 } },
   { level: 3, color: 'green', vp: 5, cost: { blue: 7, green: 3 } },
 
-  
-  
-  
   { level: 1, color: 'red', vp: 0, cost: { black: 3, white: 3 } },
   { level: 1, color: 'red', vp: 0, cost: { black: 1, white: 1, blue: 1 } },
   { level: 1, color: 'red', vp: 0, cost: { blue: 2, green: 1 } },
@@ -99,9 +86,6 @@ const CARDS_DATA = [
   { level: 3, color: 'red', vp: 4, cost: { white: 3, blue: 3, green: 6 } },
   { level: 3, color: 'red', vp: 5, cost: { white: 3, green: 7 } },
 
-  
-  
-  
   { level: 1, color: 'white', vp: 0, cost: { black: 1, blue: 2, green: 2 } },
   { level: 1, color: 'white', vp: 0, cost: { black: 1, red: 2 } },
   { level: 1, color: 'white', vp: 0, cost: { black: 1, red: 1, blue: 1, green: 1 } },
@@ -137,12 +121,10 @@ const NOBLES_DATA = [
   { vp: 3, requirements: { black: 4, white: 4 } },
 ];
 
-
 let cardIdCounter = 0;
 const ALL_CARDS = CARDS_DATA.map(card => ({
     ...card,
     id: `card-${cardIdCounter++}`,
-    
     cost: {
         white: card.cost.white || 0,
         blue: card.cost.blue || 0,
@@ -156,7 +138,6 @@ let nobleIdCounter = 0;
 const ALL_NOBLES = NOBLES_DATA.map(noble => ({
     ...noble,
     id: `noble-${nobleIdCounter++}`,
-    
     requirements: {
         white: noble.requirements.white || 0,
         blue: noble.requirements.blue || 0,

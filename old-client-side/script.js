@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // --- DOM Elements ---
     const setupScreen = document.getElementById('setup-screen');
     const gameContainer = document.getElementById('game-container');
     const playerCountSelect = document.getElementById('player-count');
@@ -39,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const aiThinkingOverlay = document.getElementById('ai-thinking-overlay');
     const aiThinkingPlayerName = document.getElementById('ai-thinking-player-name');
 
-    // --- Game State Variables ---
     let players = [];
     let bank = {};
     let decks = { 1: [], 2: [], 3: [] };
@@ -53,77 +51,66 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastRoundPlayerIndex = -1;
     let turnTimerInterval = null;
     let turnTimeRemaining = 0;
-    let turnDuration = 0; // In seconds
+    let turnDuration = 0;
     let selectedGemTypes = [];
-    let selectedCard = null; // { type: 'visible'|'reserved'|'deck', level: #, id: '...', element: ... }
-    let currentAction = null; // 'SELECTING_GEMS', 'SELECTING_CARD'
-    let gameHistoryLog = []; // Array to store action history
-    let aiActionCounter = 0; // Debug counter for AI actions
+    let selectedCard = null;
+    let currentAction = null;
+    let gameHistoryLog = [];
+    let aiActionCounter = 0;
 
-    // --- Constants & Config ---
     const MAX_GEMS_PLAYER = 10;
     const MAX_RESERVED_CARDS = 3;
     const CARDS_PER_LEVEL_VISIBLE = 4;
     const WINNING_SCORE = 15;
-    const TIMER_LOW_THRESHOLD = 10; // seconds
+    const TIMER_LOW_THRESHOLD = 10;
     const MIN_GEMS_FOR_TAKE_TWO = 4;
     const PLAYER_COLORS = ['player-color-1', 'player-color-2', 'player-color-3', 'player-color-4'];
     const THEME_COLOR_NAMES = { 'player-color-1': 'Red', 'player-color-2': 'Blue', 'player-color-3': 'Green', 'player-color-4': 'Yellow' };
 
-    // --- AI Configuration ---
     let GEMINI_API_KEY = null;
-    const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key='; // Base URL
+    const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=';
     let isSimulationMode = false;
     let isSimulationPaused = false;
-    let simulationTurnDelayMs = 200; // Default delay
+    let simulationTurnDelayMs = 200;
 
     const AI_CONFIG = {
-        isEnabled: false, // Will be true if key is provided
-        requestTimeoutMs: 25000, // Generous timeout for complex prompts
+        isEnabled: false,
+        requestTimeoutMs: 25000,
         maxRetries: 2,
         thinkingIndicatorDelayMs: 300,
-        logPrompts: false, // Set true for deep debugging
-        logResponses: false, // Set true for deep debugging
+        logPrompts: false,
+        logResponses: false,
     };
 
-    // =========================================================================
-    // INITIALIZATION & SETUP
-    // =========================================================================
-
     function initializeApiKey() {
-        const storedKey = localStorage.getItem('geminiApiKey'); // Try reading from localStorage
+        const storedKey = localStorage.getItem('geminiApiKey');
 
         if (storedKey) {
-            // Key found in storage
             GEMINI_API_KEY = storedKey;
             console.log("Gemini API Key loaded from localStorage.");
-            if (apiKeyStatusP) { // Update status message
+            if (apiKeyStatusP) {
                 apiKeyStatusP.textContent = "API Key loaded from localStorage.";
                 apiKeyStatusP.style.color = "var(--text-secondary)";
             }
             AI_CONFIG.isEnabled = true;
         } else {
-            // Key not found, prompt the user
             GEMINI_API_KEY = prompt("Gemini API Key not found in storage.\nPlease enter your Gemini API Key (will be stored locally for future sessions):");
 
             if (GEMINI_API_KEY) {
-                // Key provided via prompt
                 console.log("Gemini API Key provided by user.");
-                localStorage.setItem('geminiApiKey', GEMINI_API_KEY); // Store the key
+                localStorage.setItem('geminiApiKey', GEMINI_API_KEY);
                 if (apiKeyStatusP) {
                     apiKeyStatusP.textContent = "API Key stored in localStorage for future sessions.";
                     apiKeyStatusP.style.color = "var(--text-secondary)";
                 }
                 AI_CONFIG.isEnabled = true;
             } else {
-                // User cancelled the prompt or entered nothing
                 console.error("Gemini API Key not provided. AI features will be disabled.");
                 if (apiKeyStatusP) {
                     apiKeyStatusP.textContent = "API Key not provided. AI players disabled.";
                     apiKeyStatusP.style.color = "var(--text-error)";
                 }
                 AI_CONFIG.isEnabled = false;
-                // Disable AI options immediately if key is missing
                 document.querySelectorAll('.player-type-select').forEach(sel => {
                      const aiOption = sel.querySelector('option[value="ai"]');
                      if(aiOption) aiOption.disabled = true;
@@ -132,10 +119,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Ensure UI reflects key status after check (might run before setupPlayerNameInputs)
-        // Call setup again or ensure setup uses AI_CONFIG.isEnabled correctly
-        if (typeof setupPlayerNameInputs === 'function') { // Check if function exists yet
-           setupPlayerNameInputs(); // Re-run setup to potentially disable AI options
+        if (typeof setupPlayerNameInputs === 'function') {
+           setupPlayerNameInputs();
         }
     }
 
@@ -152,31 +137,28 @@ document.addEventListener('DOMContentLoaded', () => {
         isGameOverConditionMet = false;
         gameTrulyFinished = false;
         lastRoundPlayerIndex = -1;
-        stopTimer(); // Stop any existing timer
+        stopTimer();
         hideOverlays();
         clearActionState();
-        logMessagesDiv.innerHTML = ''; // Clear log
-        gameHistoryLog = []; // Clear history
-        aiActionCounter = 0; // Reset AI counter
-        isSimulationPaused = false; // Ensure simulation starts unpaused
+        logMessagesDiv.innerHTML = '';
+        gameHistoryLog = [];
+        aiActionCounter = 0;
+        isSimulationPaused = false;
 
-        // Update simulation delay from input
         simulationTurnDelayMs = parseInt(simulationSpeedInput.value, 10) || 200;
 
-        // Create Player Objects
         playerData.forEach((pData, i) => {
             players.push({
                 id: i,
                 name: pData.name,
                 colorTheme: pData.colorTheme,
-                type: pData.type, // 'human' or 'ai'
+                type: pData.type,
                 gems: { white: 0, blue: 0, green: 0, red: 0, black: 0, gold: 0 },
-                cards: [], // Purchased cards
-                reservedCards: [], // { id, level, color, vp, cost }
-                nobles: [], // { id, vp, requirements }
+                cards: [],
+                reservedCards: [],
+                nobles: [],
                 score: 0,
                 bonuses: { white: 0, blue: 0, green: 0, red: 0, black: 0 },
-                // Detailed Stats (as defined previously)
                 stats: {
                     isFirstPlayer: (i === 0), turnsTaken: 0, triggeredGameEnd: false, turnReached15VP: null,
                     cardsPurchasedCount: 0, cardsPurchasedByLevel: { 1: 0, 2: 0, 3: 0 },
@@ -194,71 +176,61 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        // Initialize Bank
         const gemCount = gameSettings.playerCount === 2 ? 4 : (gameSettings.playerCount === 3 ? 5 : 7);
         GEM_TYPES.forEach(gem => bank[gem] = gemCount);
         bank[GOLD] = 5;
 
-        // Initialize Decks
         decks[1] = shuffleArray([...ALL_CARDS.filter(c => c.level === 1)]);
         decks[2] = shuffleArray([...ALL_CARDS.filter(c => c.level === 2)]);
         decks[3] = shuffleArray([...ALL_CARDS.filter(c => c.level === 3)]);
 
-        // Deal Initial Cards
         for (let level = 1; level <= 3; level++) {
             visibleCards[level] = [];
             for (let i = 0; i < CARDS_PER_LEVEL_VISIBLE; i++) {
-                drawCard(level, i); // Draw directly into the slot
+                drawCard(level, i);
             }
         }
 
-        // Deal Nobles
         const numNobles = gameSettings.playerCount + 1;
         availableNobles = shuffleArray([...ALL_NOBLES]).slice(0, numNobles);
 
-        // Initial Render
         renderBank();
         renderCards();
         renderNobles();
-        renderPlayers(); // Includes AI badges
+        renderPlayers();
 
-        // Log Game Start
         updateLog(`Game started. Players: ${players.map(p => `${p.name} (${p.type.toUpperCase()})`).join(', ')}.`);
         if(isSimulationMode) {
             updateLog(`AI Simulation Mode ACTIVE. Delay: ${simulationTurnDelayMs}ms.`);
-             // Timer should be off in simulation
              gameSettings.timerMinutes = 0;
              turnDuration = 0;
-             renderTimer(); // Show "Off"
+             renderTimer();
              simulationPauseBtn.classList.remove('hidden');
              simulationStatusSpan.classList.remove('hidden');
              simulationPauseBtn.textContent = "Pause Sim";
              simulationStatusSpan.textContent = "Running";
-             endTurnEarlyBtn.classList.add('hidden'); // No manual end turn in sim
+             endTurnEarlyBtn.classList.add('hidden');
         } else {
             simulationPauseBtn.classList.add('hidden');
             simulationStatusSpan.classList.add('hidden');
-            // End turn button visibility handled in startTurn
         }
 
 
-        // Transition Screens
         setupScreen.classList.remove('active');
         setupScreen.classList.add('hidden');
         gameContainer.classList.remove('hidden');
         gameContainer.classList.add('active');
-        document.body.style.alignItems = 'flex-start'; // Ensure game board isn't centered vertically
+        document.body.style.alignItems = 'flex-start';
         document.body.style.justifyContent = 'center';
 
 
-        // Start First Turn
         updateLog(`Player ${players[0].name}'s turn (#1).`);
-        startTurn(); // This will handle AI or Human start logic
+        startTurn();
     }
 
     function setupPlayerNameInputs() {
         const count = parseInt(playerCountSelect.value);
-        playerNamesDiv.innerHTML = ''; // Clear previous
+        playerNamesDiv.innerHTML = '';
         for (let i = 0; i < count; i++) {
             const playerInputDiv = document.createElement('div');
             playerInputDiv.classList.add('player-setup-entry');
@@ -281,7 +253,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 colorSelect.appendChild(option);
             });
 
-            // AI Type Selector
             const typeLabel = document.createElement('label');
             typeLabel.htmlFor = `player-type-${i}`;
             typeLabel.textContent = 'Type:';
@@ -290,24 +261,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const typeSelect = document.createElement('select');
             typeSelect.id = `player-type-${i}`;
             typeSelect.classList.add('setup-input', 'player-type-select');
-            // Check if AI should be enabled based on key status
             const aiDisabled = !AI_CONFIG.isEnabled ? 'disabled' : '';
             typeSelect.innerHTML = `
                 <option value="human" selected>Human</option>
                 <option value="ai" ${aiDisabled}>AI (Gemini)</option>
             `;
-            // Disable if simulation mode is currently checked
             typeSelect.disabled = simulationModeCheckbox.checked;
 
 
-            // Append all elements
             playerInputDiv.appendChild(nameInput);
             playerInputDiv.appendChild(colorSelect);
             playerInputDiv.appendChild(typeLabel);
             playerInputDiv.appendChild(typeSelect);
             playerNamesDiv.appendChild(playerInputDiv);
         }
-         // Ensure sim checkbox state matches key availability
          if(simulationModeCheckbox) simulationModeCheckbox.disabled = !AI_CONFIG.isEnabled;
     }
 
@@ -317,14 +284,11 @@ document.addEventListener('DOMContentLoaded', () => {
              const isSim = simulationModeCheckbox.checked;
              document.querySelectorAll('.player-type-select').forEach(sel => {
                  sel.disabled = isSim;
-                 if (isSim) sel.value = 'ai'; // Force AI display if sim checked
+                 if (isSim) sel.value = 'ai';
              });
-             if(isSim) timerInput.value = 0; // Force timer off visually
-             // Trigger re-render/update of player inputs if needed, though disabling might be enough
-             // setupPlayerNameInputs();
+             if(isSim) timerInput.value = 0;
         });
 
-        // Start Game Button
         startGameBtn.addEventListener('click', () => {
             const simulationCheckbox = document.getElementById('simulation-mode');
             const isSim = simulationCheckbox.checked;
@@ -349,52 +313,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            // Check API key only if an AI is actually involved
              if (aiSelectedCount > 0 && !GEMINI_API_KEY) {
                  alert("An AI player was selected, but the Gemini API Key is missing or invalid! Please refresh and enter the key, or choose Human players only.");
-                 return; // Prevent game start
+                 return;
              }
 
-            // Get settings
             gameSettings.playerCount = numPlayers;
             gameSettings.timerMinutes = parseFloat(timerInput.value);
-             if (isSim) gameSettings.timerMinutes = 0; // Force timer off in sim state
+             if (isSim) gameSettings.timerMinutes = 0;
             turnDuration = gameSettings.timerMinutes * 60;
-            isSimulationMode = isSim; // Set global flag
+            isSimulationMode = isSim;
 
             initGame(playerData);
         });
 
 
-        // Deck Clicks
         deckElements[1].addEventListener('click', () => handleDeckClick(1));
         deckElements[2].addEventListener('click', () => handleDeckClick(2));
         deckElements[3].addEventListener('click', () => handleDeckClick(3));
 
-        // End Turn / Pause Sim
         endTurnEarlyBtn.addEventListener('click', handleEndTurnEarly);
         simulationPauseBtn.addEventListener('click', toggleSimulationPause);
 
-        // Play Again
         playAgainBtn.addEventListener('click', () => {
             gameOverOverlay.classList.add('hidden');
             setupScreen.classList.remove('hidden');
             setupScreen.classList.add('active');
             gameContainer.classList.remove('active');
             gameContainer.classList.add('hidden');
-            document.body.style.alignItems = 'center'; // Re-center setup
+            document.body.style.alignItems = 'center';
             document.body.style.justifyContent = 'center';
-            initializeApiKey(); // Re-check key on play again
-            setupPlayerNameInputs(); // Reset setup options
-            // Reset global simulation flags explicitly
+            initializeApiKey();
+            setupPlayerNameInputs();
             isSimulationMode = false;
             isSimulationPaused = false;
         });
     }
-
-    // =========================================================================
-    // RENDERING FUNCTIONS
-    // =========================================================================
 
     function renderBank() {
         gemBankContainer.innerHTML = '';
@@ -460,15 +414,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (player && playerAreaEl) {
             const tempDiv = createPlayerAreaElement(player);
             playerAreaEl.innerHTML = tempDiv.innerHTML;
-            // Re-add AI badge if needed
              if (player.type === 'ai') {
                  const badge = document.createElement('span');
                  badge.classList.add('ai-badge');
                  badge.textContent = 'AI';
-                  // Ensure badge is appended correctly after innerHTML overwrite
-                  // It might be better to selectively update parts of the player area
-                  // But for simplicity, let's re-append it.
-                  // Check if it already exists from createPlayerAreaElement call within innerHTML set?
                   if(!playerAreaEl.querySelector('.ai-badge')){
                        playerAreaEl.appendChild(badge);
                   }
@@ -490,7 +439,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentPlayer || currentPlayer.type === 'ai' || gameTrulyFinished) {
              timerDisplay.textContent = "--:--";
              timerDisplay.classList.remove('timer-low');
-             if(currentPlayer && currentPlayer.type === 'ai') stopTimer(); // Ensure stopped for AI
+             if(currentPlayer && currentPlayer.type === 'ai') stopTimer();
              return;
          }
         const minutes = Math.floor(turnTimeRemaining / 60);
@@ -503,20 +452,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderSelectionInfo() {
-        dynamicActionButtonsContainer.innerHTML = ''; // Clear old buttons
+        dynamicActionButtonsContainer.innerHTML = '';
         const existingPreview = selectionInfoDiv.querySelector('.card-preview-container');
-        if (existingPreview) existingPreview.remove(); // Remove old preview
-        // Ensure text elements exist before manipulating style
-        selectionInfoDiv.querySelectorAll('.selection-text').forEach(p => { if(p) p.style.display = 'block'; }); // Show text by default
-        if (selectedCardDisplay) selectedCardDisplay.textContent = 'None'; // Reset text display initially
-        if (selectedGemsDisplay) selectedGemsDisplay.textContent = 'None'; // Reset gem display initially
+        if (existingPreview) existingPreview.remove();
+        selectionInfoDiv.querySelectorAll('.selection-text').forEach(p => { if(p) p.style.display = 'block'; });
+        if (selectedCardDisplay) selectedCardDisplay.textContent = 'None';
+        if (selectedGemsDisplay) selectedGemsDisplay.textContent = 'None';
 
-        // Render Selected Gems & Button
         if (currentAction === 'SELECTING_GEMS' && selectedGemTypes.length > 0) {
-            if (selectedGemsDisplay) { // Check element exists
-                 selectedGemsDisplay.innerHTML = ''; // Clear old gems
+            if (selectedGemsDisplay) {
+                 selectedGemsDisplay.innerHTML = '';
                  selectedGemTypes.forEach(type => {
-                     selectedGemsDisplay.appendChild(createGemElement(type, 1, false)); // isBank = false
+                     selectedGemsDisplay.appendChild(createGemElement(type, 1, false));
                  });
              }
 
@@ -527,34 +474,29 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.disabled = !isValid;
              dynamicActionButtonsContainer.appendChild(btn);
             if (isValid) btn.classList.add('action-possible');
-             if (selectedCardDisplay) selectedCardDisplay.textContent = 'None'; // Ensure card display is none
+             if (selectedCardDisplay) selectedCardDisplay.textContent = 'None';
 
-        // Render Selected Card, Preview & Buttons
         } else if (currentAction === 'SELECTING_CARD' && selectedCard) {
              let cardData = null;
-             // Get card data - use getCardById which checks visible and ALL reserves
              if(selectedCard.id) cardData = getCardById(selectedCard.id);
-             // For decks, create placeholder
              if (!cardData && selectedCard.type === 'deck') cardData = getDeckCardPlaceholder(selectedCard.level);
 
-             let cardText = 'Invalid Selection'; // Default text
+             let cardText = 'Invalid Selection';
 
              if (cardData) {
-                // --- Display Card Preview (Visible or Reserved) ---
                  if ((selectedCard.type === 'visible' || selectedCard.type === 'reserved') && cardData.id) {
                      selectionInfoDiv.querySelectorAll('.selection-text').forEach(p => { if(p) p.style.display = 'none'; });
                      const previewContainer = document.createElement('div');
                      previewContainer.classList.add('card-preview-container');
                      const previewCardEl = createCardElement(cardData, cardData.level);
                      previewCardEl.classList.add('card-preview');
-                     const clonedPreview = previewCardEl.cloneNode(true); // Clone to remove listeners implicitly
+                     const clonedPreview = previewCardEl.cloneNode(true);
                      previewContainer.appendChild(clonedPreview);
                      selectionInfoDiv.insertBefore(previewContainer, dynamicActionButtonsContainer);
                       if (selectedCardDisplay) selectedCardDisplay.textContent = '';
                       if (selectedGemsDisplay) selectedGemsDisplay.textContent = 'None';
 
                  }
-                 // --- Display Text for Deck Selection ---
                  else if (selectedCard.type === 'deck') {
                      cardText = `Deck L${cardData.level}`;
                       if (selectedCardDisplay) selectedCardDisplay.textContent = cardText;
@@ -563,29 +505,25 @@ document.addEventListener('DOMContentLoaded', () => {
                       if (selectedCardDisplay) selectedCardDisplay.textContent = 'Unknown Card';
                  }
 
-                 // --- Add Action Buttons (Conditional) ---
-                 const activePlayer = players[currentPlayerIndex]; // The player whose turn it IS
-                 const isHumanTurn = activePlayer && activePlayer.type === 'human' && !isSimulationMode && !gameTrulyFinished && !isOverlayVisible(); // Check overlay too
+                 const activePlayer = players[currentPlayerIndex];
+                 const isHumanTurn = activePlayer && activePlayer.type === 'human' && !isSimulationMode && !gameTrulyFinished && !isOverlayVisible();
 
-                 // Only allow actions if it's an active human's turn & no blocking overlay
                  if (isHumanTurn) {
                       const canReserveCheck = activePlayer.reservedCards.length < MAX_RESERVED_CARDS;
                       const { canAfford, goldNeeded } = (selectedCard.type === 'visible' || selectedCard.type === 'reserved') && cardData.id
                           ? canAffordCard(activePlayer, cardData)
                           : { canAfford: false, goldNeeded: 0 };
 
-                      // Purchase Button (Visible OR Reserved IF it's the current player's card)
                       if (((selectedCard.type === 'visible') || (selectedCard.type === 'reserved' && selectedCard.ownerId === currentPlayerIndex)) && cardData.id) {
                           const purchaseBtn = document.createElement('button');
                           purchaseBtn.textContent = 'Purchase Card';
                           purchaseBtn.onclick = performPurchaseCard;
-                          purchaseBtn.disabled = !canAfford; // Disabled if cannot afford
+                          purchaseBtn.disabled = !canAfford;
                           if (canAfford) purchaseBtn.classList.add('action-possible');
                           else purchaseBtn.title = `Cannot afford (need ${goldNeeded} more gold or equivalent gems)`;
                           dynamicActionButtonsContainer.appendChild(purchaseBtn);
                       }
 
-                      // Reserve Button (Visible or Deck ONLY)
                       if (selectedCard.type === 'visible' || selectedCard.type === 'deck') {
                           const reserveBtn = document.createElement('button');
                           reserveBtn.textContent = 'Reserve Card';
@@ -599,14 +537,12 @@ document.addEventListener('DOMContentLoaded', () => {
                           dynamicActionButtonsContainer.appendChild(reserveBtn);
                       }
                  } else {
-                      // console.log("Not human turn or overlay visible, no action buttons rendered for selected card.");
                  }
              } else {
                   if (selectedCardDisplay) selectedCardDisplay.textContent = cardText;
              }
 
         } else {
-            // Default state when nothing is selected
             if (selectedCardDisplay) selectedCardDisplay.textContent = 'None';
             if (selectedGemsDisplay) selectedGemsDisplay.textContent = 'None';
         }
@@ -620,10 +556,6 @@ document.addEventListener('DOMContentLoaded', () => {
             deckElements[level].title = `${count} cards left in Level ${level} deck`;
         }
     }
-
-    // =========================================================================
-    // ELEMENT CREATION FUNCTIONS
-    // =========================================================================
 
     function createGemElement(type, count, isBank) {
         const gemEl = document.createElement('div');
@@ -754,9 +686,8 @@ document.addEventListener('DOMContentLoaded', () => {
         playerDiv.classList.add('player-area');
         playerDiv.classList.add(player.colorTheme);
         playerDiv.id = `player-area-${player.id}`;
-        // Add AI class marker if AI player
         if (player.type === 'ai') {
-            playerDiv.classList.add('player-area-ai'); // Add a class for potential specific styling
+            playerDiv.classList.add('player-area-ai');
         }
 
         const header = document.createElement('div');
@@ -771,12 +702,11 @@ document.addEventListener('DOMContentLoaded', () => {
         header.appendChild(nameSpan);
         header.appendChild(scoreSpan);
 
-        // AI Badge (Add to header maybe?)
         if (player.type === 'ai') {
              const badge = document.createElement('span');
              badge.classList.add('ai-badge');
              badge.textContent = 'AI';
-             header.appendChild(badge); // Add badge near name/score
+             header.appendChild(badge);
          }
 
         const resourcesDiv = document.createElement('div');
@@ -868,17 +798,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return playerDiv;
     }
 
-    // =========================================================================
-    // EVENT HANDLERS & USER INTERACTION
-    // =========================================================================
-
      function handleGemClickWrapper(event) {
         const player = players[currentPlayerIndex];
          if (!player || player.type === 'ai' || isSimulationMode || isOverlayVisible() || gameTrulyFinished) return;
         const gemEl = event.currentTarget;
-        if (gemEl.classList.contains('not-selectable')) return; // Already checked non-selectable state?
+        if (gemEl.classList.contains('not-selectable')) return;
         const gemType = gemEl.dataset.gemType;
-         if (!isGemClickable(gemType, gemEl.classList.contains('selected'))) { // Use helper to check dynamic state
+         if (!isGemClickable(gemType, gemEl.classList.contains('selected'))) {
             console.log(`Click ignored on ${gemType}: Not clickable in current state.`);
             return;
          }
@@ -900,20 +826,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleReservedCardClickWrapper(event) {
-        // Allow click even if not current player or simulation, etc. for PREVIEW purposes.
         const cardEl = event.currentTarget;
 
-        // If the element itself is marked as globally not-selectable by updateClickableState
-        // (e.g., game over, overlay active), then stop.
-        // We might still allow deselecting though? Let's check if *something* is selected.
         if (cardEl.classList.contains('not-selectable') && !selectedCard) {
-             // console.log("Reserved card wrapper blocked click (globally not-selectable)");
             return;
         }
 
         const cardId = cardEl.dataset.cardId;
         if (cardId) {
-            // Pass the element itself for context
             handleReservedCardClick(cardId, cardEl);
         } else {
             console.error("Reserved card wrapper: Missing cardId on element", cardEl);
@@ -942,18 +862,13 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(`                  | currentAction: ${currentAction}`);
 
 
-        // A. CLICKING A VISUALLY SELECTED GEM ELEMENT
         if (isSelectedVisual) {
-            // *** NEW LOGIC: Handle different scenarios when clicking selected ***
 
-            // Scenario 1: Trying to complete a Take 2 pair?
             const isTryingToAddSecondIdentical = (currentCount === 1 && currentSelection[0] === gemType && bank[gemType] >= MIN_GEMS_FOR_TAKE_TWO);
 
-            // Scenario 2: Trying to deselect one gem from an already selected pair?
             const isTryingToDeselectPair = (currentCount === 2 && currentUniqueCount === 1 && currentSelection[0] === gemType);
 
             if (isTryingToAddSecondIdentical) {
-                // --- ADD SECOND IDENTICAL GEM ---
                 console.log(` -> Action: Adding SECOND IDENTICAL ${gemType} (Take 2 rule)`);
                 selectedGemTypes.push(gemType);
                  console.log(`   -> After push (2nd identical): selectedGemTypes = [${selectedGemTypes.join(',')}] (Length: ${selectedGemTypes.length})`);
@@ -967,30 +882,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
             } else if (isTryingToDeselectPair) {
-                 // --- DESELECT THE ENTIRE PAIR ---
                  console.log(` -> Action: Deselecting entire PAIR of ${gemType}`);
-                 // Clear logically
                  selectedGemTypes = [];
                  console.log(`   -> Cleared selectedGemTypes. New (logic): [${selectedGemTypes.join(',')}]`);
-                 // Clear visually
                  console.log("   -> Deselecting ALL visual elements for", gemType);
                   gemBankContainer.querySelectorAll(`.gem[data-gem-type='${gemType}'].selected`).forEach(el => {
                       el.classList.remove('selected');
                   });
-                  currentAction = null; // Reset action as selection is empty
+                  currentAction = null;
 
             } else {
-                // --- REGULAR DESELECT (Not completing a pair, not breaking a pair) ---
-                // This covers deselecting one of 3 different, or deselecting when > 2 selected etc.
                 console.log(` -> Action: Regular Deselect of ${gemType}`);
                 const indexToRemove = selectedGemTypes.lastIndexOf(gemType);
                 if (indexToRemove > -1) {
                     selectedGemTypes.splice(indexToRemove, 1);
-                    clickedGemEl.classList.remove('selected'); // Deselect just the clicked one visually
+                    clickedGemEl.classList.remove('selected');
                     console.log(`   -> Removed from selectedGemTypes. New (logic): [${selectedGemTypes.join(',')}]`);
                 } else {
                      console.warn(`   -> Deselect WARNING: Could not find ${gemType} in selectedGemTypes to remove.`);
-                     clickedGemEl.classList.remove('selected'); // Ensure visual deselect anyway
+                     clickedGemEl.classList.remove('selected');
                 }
                 if (selectedGemTypes.length === 0) {
                     console.log("   -> Selection empty after deselect.");
@@ -998,10 +908,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-        // B. CLICKING A *NOT* VISUALLY SELECTED GEM ELEMENT
         } else {
-             // --- Logic for selecting 1st, 2nd different, 3rd different ---
-             // (Keep this block exactly as it was in the previous correct version)
              console.log(` -> Action: Attempting Select ${gemType}. Current count: ${currentCount}`);
             let canAdd = false;
             if (currentCount === 0 && bank[gemType] >= 1) {
@@ -1037,7 +944,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  clickedGemEl.style.animation = 'shake 0.5s';
                  setTimeout(() => { clickedGemEl.style.animation = ''; }, 500);
             }
-        } // End of B (Clicking non-selected)
+        }
 
         console.log(`--- State Before Render/Update --- selectedGemTypes: [${selectedGemTypes.join(',')}] (Length: ${selectedGemTypes.length})`);
         renderSelectionInfo();
@@ -1048,30 +955,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleCardClick(type, level, cardId, cardEl) {
-        // Assumes checks for player turn are done in the wrapper
-         console.log(`[handleCardClick] Clicked card: ${cardId}. Current selected ID: ${selectedCard?.id}`); // Log entry
+         console.log(`[handleCardClick] Clicked card: ${cardId}. Current selected ID: ${selectedCard?.id}`);
 
-        // *** FIX: Compare by ID and Type for deselect check ***
         if (selectedCard && selectedCard.id === cardId && selectedCard.type === type) {
             console.log(` -> Match found by ID! Calling clearCardSelectionState for ${cardId}.`);
-            clearCardSelectionState(); // Clear selection and update UI
-             console.log(` -> After clearCardSelectionState. selectedCard is now:`, selectedCard); // Verify clear
-            return; // Stop processing
+            clearCardSelectionState();
+             console.log(` -> After clearCardSelectionState. selectedCard is now:`, selectedCard);
+            return;
         }
-        // *** END FIX ***
 
-        // Clear gem selection if switching action type
         if (currentAction === 'SELECTING_GEMS') {
             console.log(" -> Clearing gem selection.");
             clearGemSelectionState();
         }
-        // Clear previous card selection visual if selecting a different card
         else if (currentAction === 'SELECTING_CARD' && selectedCard && selectedCard.element !== cardEl) {
              console.log(` -> Clearing previous card selection visual: ${selectedCard.id}`);
              if (selectedCard.element) selectedCard.element.classList.remove('selected');
         }
 
-        // Set new selection
         currentAction = 'SELECTING_CARD';
         selectedCard = { type, level, id: cardId, element: cardEl };
         cardEl.classList.add('selected');
@@ -1083,37 +984,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleDeckClick(level) {
-        // Assumes checks for player turn are done implicitly by updateClickableState disabling
         const deckEl = deckElements[level];
         if (deckEl.classList.contains('empty') || deckEl.classList.contains('not-selectable')) return;
 
-        // *** FIX: Check if clicking the already selected deck ***
         if (selectedCard && selectedCard.element === deckEl) {
             console.log(`[handleDeckClick] Deselecting already selected deck: L${level}`);
-            clearCardSelectionState(); // Clear selection and update UI
-            return; // Stop processing
+            clearCardSelectionState();
+            return;
         }
-        // *** END FIX ***
 
 
         const player = players[currentPlayerIndex];
-        // Add this check back just in case updateClickableState didn't catch it somehow
         if (!player || player.reservedCards.length >= MAX_RESERVED_CARDS) {
             updateLog("Reserve limit reached (3). Cannot reserve from deck.");
             return;
         }
 
-        const deckId = `deck-${level}`; // Use a consistent ID format
+        const deckId = `deck-${level}`;
 
-        // Clear other selections
         if (currentAction === 'SELECTING_GEMS') clearGemSelectionState();
         else if (currentAction === 'SELECTING_CARD' && selectedCard && selectedCard.element !== deckEl) {
              if (selectedCard.element) selectedCard.element.classList.remove('selected');
         }
 
-        // Set new selection
         currentAction = 'SELECTING_CARD';
-        selectedCard = { type: 'deck', level, id: deckId, element: deckEl }; // Use deckId
+        selectedCard = { type: 'deck', level, id: deckId, element: deckEl };
         deckEl.classList.add('selected');
         console.log(`[handleDeckClick] Selected deck: L${level}`);
 
@@ -1123,7 +1018,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleReservedCardClick(cardId, cardEl) {
-        // Find the owner player based on the parent element
         const playerArea = cardEl.closest('.player-area');
         if (!playerArea) {
              console.error("Could not find player area for reserved card click.");
@@ -1137,27 +1031,24 @@ document.addEventListener('DOMContentLoaded', () => {
              return;
         }
 
-       // Ensure card still exists in that player's reserve
        const cardData = ownerPlayer.reservedCards.find(c => c.id === cardId);
        if (!cardData) {
            console.error(`Reserved card ${cardId} data not found for click in player ${ownerId}'s hand!`);
-           renderPlayerArea(ownerId); // Refresh display in case of sync issue
+           renderPlayerArea(ownerId);
            return;
        }
         console.log(`[handleReservedCardClick] Clicked reserved card: ${cardId} owned by Player ${ownerId}. Current selected ID: ${selectedCard?.id}`);
 
-       // Check if clicking the already selected reserved card (compare ID and type)
        if (selectedCard && selectedCard.id === cardId && selectedCard.type === 'reserved') {
            console.log(` -> Match found by ID! Calling clearCardSelectionState for reserved ${cardId}.`);
            clearCardSelectionState();
             console.log(` -> After clearCardSelectionState. selectedCard is now:`, selectedCard);
-           return; // Stop processing
+           return;
        }
 
-       // Clear other selections (gems, other cards/decks)
        if (currentAction === 'SELECTING_GEMS') {
             console.log(" -> Clearing gem selection.");
-            clearGemSelectionState(); // This now calls render/update internally
+            clearGemSelectionState();
         }
        else if (currentAction === 'SELECTING_CARD' && selectedCard) {
              console.log(` -> Clearing previous card/deck selection visual: ${selectedCard.id}`);
@@ -1166,18 +1057,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
        }
 
-       // --- Set new selection state for the PREVIEW ---
        currentAction = 'SELECTING_CARD';
-        // Add ownerId to the selected card state
        selectedCard = { type: 'reserved', level: cardData.level, id: cardId, element: cardEl, ownerId: ownerId };
-        // Visually select ONLY the clicked small card
-        document.querySelectorAll('.reserved-card-small.selected, .card.selected, .deck.selected').forEach(el => el.classList.remove('selected')); // Clear others first
+        document.querySelectorAll('.reserved-card-small.selected, .card.selected, .deck.selected').forEach(el => el.classList.remove('selected'));
        cardEl.classList.add('selected');
        console.log(`[handleReservedCardClick] Setting new selection: Reserved ${cardId} owned by ${ownerId}`);
 
-       // --- Update UI ---
-       renderSelectionInfo(); // This will now show the preview and correct buttons
-       updateClickableState(); // This will update which *other* elements are clickable
+       renderSelectionInfo();
+       updateClickableState();
     }
 
     function handleEndTurnEarly() {
@@ -1204,25 +1091,18 @@ document.addEventListener('DOMContentLoaded', () => {
              simulationStatusSpan.textContent = "Paused";
              updateLog("Simulation paused.");
              stopTimer();
-             updateClickableState(); // Keep pause button active
+             updateClickableState();
          } else {
              simulationPauseBtn.textContent = "Pause Sim";
              simulationStatusSpan.textContent = "Running";
              updateLog("Simulation resumed.");
-             // If paused between AI turns, the natural loop in endTurn will restart it via startTurn
-             // If paused during human turn (impossible in sim mode), nothing happens until unpause
-             updateClickableState(); // Re-disable background
-             // Immediately start next turn if needed (in case it was paused right before startTurn)
+             updateClickableState();
              if (!isOverlayVisible() && !gameTrulyFinished) {
                  console.log("Resuming simulation, triggering startTurn immediately.");
-                 setTimeout(startTurn, 0); // Trigger next turn check now
+                 setTimeout(startTurn, 0);
              }
          }
     }
-
-    // =========================================================================
-    // ACTION VALIDATION HELPERS
-    // =========================================================================
 
     function validateTakeGemsSelection() {
         const gems = selectedGemTypes;
@@ -1237,10 +1117,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return false;
     }
-
-    // =========================================================================
-    // GAME ACTIONS & LOGIC
-    // =========================================================================
 
     function performTakeGems() {
         if (!validateTakeGemsSelection()) {
@@ -1290,7 +1166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 updateLog(`Cannot reserve: Level ${level} deck is empty.`); clearActionState(); renderCards(); return;
             }
-        } else { // type === 'visible'
+        } else {
             const cardId = selectedCard.id;
             const cardIndex = visibleCards[level].findIndex(c => c && c.id === cardId);
             if (cardIndex !== -1 && visibleCards[level][cardIndex]) {
@@ -1319,7 +1195,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const player = players[currentPlayerIndex]; const cardId = selectedCard.id;
         let purchasedCardData = null; let cardSource = selectedCard.type; let cardIndex = -1; let isFromReserve = (cardSource === 'reserved');
         if (cardSource === 'visible') {
-            cardIndex = visibleCards[selectedCard.level]?.findIndex(c => c && c.id === cardId); // Added optional chaining
+            cardIndex = visibleCards[selectedCard.level]?.findIndex(c => c && c.id === cardId);
             if (cardIndex !== -1) purchasedCardData = visibleCards[selectedCard.level][cardIndex];
         } else {
             cardIndex = player.reservedCards.findIndex(c => c.id === cardId);
@@ -1333,9 +1209,9 @@ document.addEventListener('DOMContentLoaded', () => {
             updateLog(`Cannot purchase: Not enough resources. Need ${goldNeeded} more gold or equivalent gems.`); return;
         }
         let goldSpent_this_turn = 0; let gemsSpent_this_turn = { white: 0, blue: 0, green: 0, red: 0, black: 0 }; let totalResourceCost = 0;
-        let paymentError = false; // Flag for payment issues
+        let paymentError = false;
         GEM_TYPES.forEach(gemType => {
-             if (paymentError) return; // Stop if error occurred
+             if (paymentError) return;
             const costToPay = effectiveCost[gemType]; totalResourceCost += costToPay;
             const playerHas = player.gems[gemType]; const useFromPlayerGems = Math.min(costToPay, playerHas);
             const needsGoldForThisColor = costToPay - useFromPlayerGems;
@@ -1350,7 +1226,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
-        if (paymentError) { // Handle error after loop
+        if (paymentError) {
             updateLog("Error during payment calculation. Action cancelled."); renderBank(); renderPlayerArea(player.id); clearActionState(); return;
         }
         player.cards.push(purchasedCardData); player.score += purchasedCardData.vp; player.bonuses[purchasedCardData.color]++;
@@ -1371,7 +1247,6 @@ document.addEventListener('DOMContentLoaded', () => {
         endTurn('PURCHASE');
     }
 
-    // --- Gem Return Logic ---
     function handleConfirmReturnGems(player, gemsToReturnCount, callback) {
         const selectedElements = returnGemsPlayerDisplay.querySelectorAll('.gem.selected[data-return-gem-type]');
         if (selectedElements.length !== gemsToReturnCount) {
@@ -1384,7 +1259,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const returnedCounts = {}; const returnedGemTypes = [];
         gemsElementsToReturn.forEach(gemEl => {
             const type = gemEl.dataset.returnGemType;
-            if (type && player.gems[type] > 0) { // Ensure type exists before accessing
+            if (type && player.gems[type] > 0) {
                 player.gems[type]--; bank[type]++;
                 returnedCounts[type] = (returnedCounts[type] || 0) + 1;
                 returnedGemTypes.push(type); player.stats.gemsReturnedOverLimit[type]++;
@@ -1397,7 +1272,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (callback) callback();
      }
 
-    // --- Noble Logic ---
     function awardNoble(player, nobleData) {
          const nobleIndex = availableNobles.findIndex(n => n.id === nobleData.id);
          if (nobleIndex === -1) {
@@ -1411,49 +1285,36 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
-    // =========================================================================
-    // AI LOGIC
-    // =========================================================================
-
     async function handleAiTurn() {
-        // (Keep initial checks for game over, pause, AI enabled, etc.)
-        if (gameTrulyFinished || (isSimulationMode && isSimulationPaused)) { /*...*/ return; }
+        if (gameTrulyFinished || (isSimulationMode && isSimulationPaused)) { return; }
         const player = players[currentPlayerIndex];
-        if (!player || player.type !== 'ai') { /*...*/ return; }
-        if (!AI_CONFIG.isEnabled || !GEMINI_API_KEY) { /*...*/ executeFallbackAiAction(getGameStateForAI()); /*...*/ return; }
+        if (!player || player.type !== 'ai') { return; }
+        if (!AI_CONFIG.isEnabled || !GEMINI_API_KEY) { executeFallbackAiAction(getGameStateForAI()); return; }
 
         aiActionCounter++;
         console.log(`Starting AI Turn ${turnNumber} for ${player.name} (Action Attempt #${aiActionCounter})`);
-        // showAiThinking(player.name); // --- REMOVED Thinking Screen ---
-        updateClickableState(); // Ensure UI is disabled
+        updateClickableState();
 
         let validatedAction = null;
         let attempts = 0;
-        const MAX_INVALID_ATTEMPTS = 2; // Try up to 2 times before fallback
+        const MAX_INVALID_ATTEMPTS = 2;
 
         while (!validatedAction && attempts < MAX_INVALID_ATTEMPTS) {
             attempts++;
             console.log(`   -> AI Action Attempt ${attempts}/${MAX_INVALID_ATTEMPTS}`);
             try {
-                // 1. Gather State & History
                 const gameState = getGameStateForAI();
 
-                // 2. Create Prompt (Potentially add info about previous failure?)
-                // For simplicity now, we use the same prompt generation.
-                // A more advanced approach could add: "Your previous attempt was invalid, please re-evaluate based on the rules."
                 const prompt = createPromptForGemini(gameState);
                 if (AI_CONFIG.logPrompts && attempts === 1) console.log(`[AI Prompt - ${player.name} Turn ${turnNumber}]:\n`, prompt);
 
-                // 3. Fetch Action from API
                 const aiSuggestedAction = await fetchGeminiActionDirect(prompt);
 
-                // 4. Validate Action
                 if (aiSuggestedAction) {
                     validatedAction = validateAiAction(aiSuggestedAction, gameState);
                      if (!validatedAction) {
                         console.warn(`AI ${player.name} proposed invalid action (Attempt ${attempts}):`, aiSuggestedAction);
                         updateLog(`AI ${player.name} proposed invalid action (Attempt ${attempts}). Re-thinking...`);
-                         // Optionally wait a tiny bit before retrying
                          await new Promise(resolve => setTimeout(resolve, 100));
                      } else {
                           console.log(`   -> AI Action validated on attempt ${attempts}.`);
@@ -1461,31 +1322,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                      console.warn(`AI ${player.name} failed to get action from API (Attempt ${attempts}).`);
                      updateLog(`AI ${player.name} failed to get action from API (Attempt ${attempts}).`);
-                      // If API fails, break the loop and go to fallback immediately? Or let retry handle it?
-                      // Let's let retry handle API errors for now.
-                      // If fetchGeminiActionDirect returns null after retries, validatedAction remains null.
-                      break; // Exit while loop if API failed definitively
+                      break;
                 }
 
             } catch (error) {
                 console.error(`Error during AI turn attempt ${attempts} for ${player.name}:`, error);
                 updateLog(`Error during AI ${player.name}'s turn attempt ${attempts}.`);
-                 // Break loop on unexpected error during the process
                  break;
             }
-        } // End while loop
+        }
 
-        // 5. Execute or Fallback
         if (validatedAction) {
             console.log(`AI ${player.name} executing validated action:`, validatedAction);
-            executeAiAction(validatedAction); // This calls endTurn indirectly
+            executeAiAction(validatedAction);
         } else {
              console.warn(`AI ${player.name} failed to provide a valid action after ${attempts} attempts. Executing fallback.`);
              updateLog(`AI ${player.name} failed to provide valid action. Executing fallback.`);
-            executeFallbackAiAction(getGameStateForAI()); // Fallback calls endTurn indirectly
+            executeFallbackAiAction(getGameStateForAI());
         }
 
-        // hideAiThinking(); // --- REMOVED Thinking Screen ---
 
     }
 
@@ -1518,28 +1373,25 @@ document.addEventListener('DOMContentLoaded', () => {
     function getValidActionHints(gameState) {
         const hints = {
             canTake3Different: false,
-            canTake2Same: [], // List of colors possible for take 2
+            canTake2Same: [],
             canReserve: gameState.currentPlayer.reservedCards.length < MAX_RESERVED_CARDS,
-            canPurchaseVisible: [], // List of { cardId, level, color } for affordable visible
-            canPurchaseReserved: [], // List of { cardId, level, color } for affordable reserved
+            canPurchaseVisible: [],
+            canPurchaseReserved: [],
             canReserveFromDeck: { 1: false, 2: false, 3: false },
         };
-        const player = gameState.currentPlayer; // Use the state AI sees
+        const player = gameState.currentPlayer;
 
-        // Check Take 3 Different
         const availableSingleGems = GEM_TYPES.filter(g => gameState.bank[g] >= 1);
         if (availableSingleGems.length >= 3) {
             hints.canTake3Different = true;
         }
 
-        // Check Take 2 Same
         GEM_TYPES.forEach(g => {
             if (gameState.bank[g] >= MIN_GEMS_FOR_TAKE_TWO) {
                 hints.canTake2Same.push(g);
             }
         });
 
-        // Check Reserve from Deck
         if (hints.canReserve) {
             for (let level = 1; level <= 3; level++) {
                  if (gameState.deckCounts[level] > 0) {
@@ -1548,10 +1400,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Check Affordable Purchases (using current player state)
-        const currentRealPlayer = players[currentPlayerIndex]; // Need real player for canAffordCard
+        const currentRealPlayer = players[currentPlayerIndex];
         if (currentRealPlayer) {
-             // Visible Cards
             for (let level = 1; level <= 3; level++) {
                 gameState.visibleCards[level].forEach(card => {
                     if (card) {
@@ -1562,8 +1412,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
             }
-             // Reserved Cards
-             currentRealPlayer.reservedCards.forEach(card => { // Check actual reserved cards
+             currentRealPlayer.reservedCards.forEach(card => {
                  if (card) {
                      const { canAfford } = canAffordCard(currentRealPlayer, card);
                      if (canAfford) {
@@ -1580,7 +1429,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function createPromptForGemini(gameState) {
-        // Calculate valid action hints based on the current state
         const validHints = getValidActionHints(gameState);
 
         const prompt = `
@@ -1651,8 +1499,6 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
 
         const requestBody = {
             contents: [{ parts: [{ text: prompt }] }],
-            // Optional: Add safetySettings if needed
-            // generationConfig: { temperature: 0.7 } // Adjust temperature if needed
         };
         const fullUrl = `${GEMINI_API_URL}${GEMINI_API_KEY}`;
 
@@ -1679,36 +1525,29 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
                 const data = await response.json();
                 if (AI_CONFIG.logResponses) console.log("AI Response Raw:", JSON.stringify(data, null, 2));
 
-                // --- Extract and Parse JSON Response ---
                 if (data.candidates && data.candidates[0]?.content?.parts?.[0]) {
                     const responseText = data.candidates[0].content.parts[0].text;
                     try {
-                        // Clean potential markdown formatting
                         const cleanedResponse = responseText.replace(/^```json\s*|```$/g, '').trim();
-                        // Attempt to parse
                         const actionJson = JSON.parse(cleanedResponse);
                         if (AI_CONFIG.logResponses) console.log("Parsed AI JSON:", actionJson);
 
-                        // *** FIX: Return ANY valid parsed JSON object ***
-                        // The calling function will validate the specific structure needed (action, return, nobleId)
                         if (actionJson && typeof actionJson === 'object') {
-                             return actionJson; // Success! Return the parsed object
+                             return actionJson;
                          } else {
-                             // This case means JSON.parse succeeded but resulted in null, boolean, number etc. which is not expected.
                              throw new Error("Parsed JSON is not a valid object.");
                          }
                     } catch (parseError) {
                         console.error("Failed to parse AI response JSON:", parseError, "\nRaw Text:", responseText);
-                        // Don't retry on parsing error, the response is fundamentally bad
-                        return null; // Indicate failure to parse
+                        return null;
                     }
                 } else if (data.promptFeedback?.blockReason) {
                     console.error("Gemini Prompt Blocked:", data.promptFeedback.blockReason, data.promptFeedback.safetyRatings);
                     updateLog(`AI Error: Prompt blocked by safety filters (${data.promptFeedback.blockReason}).`);
-                    return null; // Indicate failure due to blocking
+                    return null;
                 } else {
                     console.error("Unexpected Gemini API response structure:", data);
-                    throw new Error("Unexpected API response structure"); // Throw error to trigger retry or failure
+                    throw new Error("Unexpected API response structure");
                 }
 
             } catch (error) {
@@ -1719,22 +1558,19 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
                  }
                 if (i === AI_CONFIG.maxRetries) {
                     updateLog(`AI Error: Max retries reached for API call.`);
-                    return null; // Failed after all retries
+                    return null;
                 }
-                // Wait before retrying (simple backoff)
                 await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
             }
         }
-        // Should only be reached if all retries fail
         return null;
     }
 
     function validateAiAction(action, gameState) {
-        // Rigorous check of the AI's proposed action against the game state *it was given*
-        const player = gameState.currentPlayer; // Use the state AI saw
-        console.log(`[validateAiAction] Validating AI Action for ${player.name}:`, action); // Log validation start
+        const player = gameState.currentPlayer;
+        console.log(`[validateAiAction] Validating AI Action for ${player.name}:`, action);
 
-        try { // Wrap in try-catch for safety
+        try {
             switch (action.action) {
                 case 'TAKE_GEMS':
                     if (!action.gems || !Array.isArray(action.gems)) { console.log(" -> Validation Fail: Invalid gems structure."); return null; }
@@ -1750,7 +1586,6 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
                     } else if (gemCount === 2) {
                         if (uniqueGems.size !== 1) { console.log(" -> Validation Fail: Take 2 requires 2 identical gems."); return null; }
                         const type = action.gems[0];
-                        // *** ADD EXPLICIT LOG FOR BANK COUNT CHECK ***
                         console.log(` -> Validation Check: Take 2 ${type}. Bank has ${gameState.bank[type]}. Need >= ${MIN_GEMS_FOR_TAKE_TWO}.`);
                         if (gameState.bank[type] < MIN_GEMS_FOR_TAKE_TWO) {
                              console.log(` -> Validation Fail: Take 2 ${type} - Bank count insufficient.`);
@@ -1759,11 +1594,10 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
                         console.log(" -> Validation Pass: Take 2 Gems");
                     } else {
                         console.log(` -> Validation Fail: Invalid number of gems (${gemCount}).`);
-                        return null; // Invalid number of gems
+                        return null;
                     }
-                    return action; // Valid TAKE_GEMS
+                    return action;
 
-                // ... (rest of validation for RESERVE_CARD, PURCHASE_CARD) ...
                 case 'RESERVE_CARD':
                      if (player.reservedCards.length >= MAX_RESERVED_CARDS) { console.log(" -> Validation Fail: Reserve limit reached."); return null; }
                      if (!action.source || (action.source !== 'visible' && action.source !== 'deck')) { console.log(" -> Validation Fail: Invalid reserve source."); return null; }
@@ -1771,7 +1605,7 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
                          if (!action.cardId) { console.log(" -> Validation Fail: Missing cardId for visible reserve."); return null; }
                          const cardExists = Object.values(gameState.visibleCards).flat().some(c => c && c.id === action.cardId);
                          if (!cardExists) { console.log(` -> Validation Fail: Visible card ${action.cardId} not found.`); return null; }
-                     } else { // source === 'deck'
+                     } else {
                          if (!action.level || ![1, 2, 3].includes(action.level)) { console.log(` -> Validation Fail: Invalid deck level ${action.level}.`); return null; }
                          if (gameState.deckCounts[action.level] <= 0) { console.log(` -> Validation Fail: Deck L${action.level} is empty.`); return null; }
                      }
@@ -1791,7 +1625,7 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
 
                 default:
                     console.warn("AI Validation: Unknown action type:", action.action);
-                    return null; // Unknown action
+                    return null;
             }
         } catch (validationError) {
              console.error("Error during AI action validation:", validationError, "Action:", action);
@@ -1855,7 +1689,7 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
                  if (cardElement) { updateLog(`AI Fallback: Reserving L1 card ${l1Visible.id}`); selectedCard = { type: 'visible', level: 1, id: l1Visible.id, element: cardElement }; performReserveCard(); return; } }
              else if (decks[1].length > 0) { updateLog(`AI Fallback: Reserving from L1 deck.`); const deckElement = deckElements[1]; selectedCard = { type: 'deck', level: 1, id: `deck-1`, element: deckElement }; performReserveCard(); return; } }
         updateLog(`AI Fallback: No valid fallback action found. Passing turn.`);
-        logActionToHistory(player, 'FALLBACK_PASS', {}); // Log the fallback pass
+        logActionToHistory(player, 'FALLBACK_PASS', {});
         endTurn('FALLBACK_PASS');
     }
 
@@ -1898,9 +1732,8 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
           updateLog(`AI ${player.name} executing fallback gem return.`); console.warn(`Executing fallback return for ${player.name}.`);
          let gemsToReturn = []; let availableToReturn = [];
          GEM_TYPES.forEach(type => { for (let i = 0; i < (ownedNonGold[type] || 0); i++) { availableToReturn.push(type); } });
-          // Simple: return least valuable (or most common if tie?) - Let's do most common first
           const counts = availableToReturn.reduce((acc, type) => { acc[type] = (acc[type] || 0) + 1; return acc; }, {});
-          availableToReturn.sort((a, b) => counts[b] - counts[a]); // Sort by frequency desc
+          availableToReturn.sort((a, b) => counts[b] - counts[a]);
           gemsToReturn = availableToReturn.slice(0, countNeeded);
           let elementsToReturn = []; let tempOwned = {...ownedNonGold};
            for (const typeToReturn of gemsToReturn) { if(tempOwned[typeToReturn] > 0) { const dummyEl = document.createElement('div'); dummyEl.dataset.returnGemType = typeToReturn; elementsToReturn.push(dummyEl); tempOwned[typeToReturn]--; } }
@@ -1922,7 +1755,7 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
              let chosenNoble = null;
              if (validatedChoiceId) { chosenNoble = eligibleNobles.find(n => n.id === validatedChoiceId); }
              else { eligibleNobles.sort((a, b) => b.vp - a.vp); chosenNoble = eligibleNobles[0]; updateLog(`AI ${player.name} executing fallback noble choice (Highest VP).`); console.warn(`Executing fallback noble choice for ${player.name}.`); }
-             if (chosenNoble) { if(awardNoble(player, chosenNoble)){ renderNobles(); renderPlayerArea(player.id); } } // awardNoble returns true on success
+             if (chosenNoble) { if(awardNoble(player, chosenNoble)){ renderNobles(); renderPlayerArea(player.id); } }
              else { console.error("AI Noble Choice: Could not determine a noble to award!"); }
          } catch (error) {
              console.error(`Error during AI noble choice for ${player.name}:`, error); updateLog(`Error during AI ${player.name}'s noble choice. Using fallback.`);
@@ -1934,10 +1767,6 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
          if (!chosenNobleId) return null; const isValid = eligibleNobles.some(n => n.id === chosenNobleId);
          if (!isValid) console.warn(`AI Noble Validation: Chosen ID ${chosenNobleId} not in eligible list.`); return isValid ? chosenNobleId : null;
      }
-
-    // =========================================================================
-    // TURN MANAGEMENT & GAME FLOW
-    // =========================================================================
 
     function startTurn() {
         if (gameTrulyFinished) return;
@@ -1980,16 +1809,16 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
                 } else if (isGameOverConditionMet) { console.log(`Continuing final round. Next player: ${currentPlayerIndex} (${players[currentPlayerIndex].name})`); }
                  if (!gameTrulyFinished) {
                       updateLog(`Player ${players[currentPlayerIndex].name}'s turn (#${turnNumber}).`);
-                      if (isSimulationMode) { setTimeout(startTurn, 0); } // Auto-advance in sim
-                      else { startTurn(); } // Normal start for human/AI mix
-                 } else { updateClickableState(); } // Final UI update if game just ended
+                      if (isSimulationMode) { setTimeout(startTurn, 0); }
+                      else { startTurn(); }
+                 } else { updateClickableState(); }
             });
         });
     }
 
     function checkAndSetGameOverCondition(player) {
         if (!isGameOverConditionMet && player.score >= WINNING_SCORE) {
-            isGameOverConditionMet = true; lastRoundPlayerIndex = (players.length - 1); // Game ends after last player index completes turn
+            isGameOverConditionMet = true; lastRoundPlayerIndex = (players.length - 1);
             updateLog(`--- Player ${player.name} (${player.type.toUpperCase()}) reached ${player.score} VP! Final round begins. All players up to Player ${players[lastRoundPlayerIndex].name} complete their turn. ---`);
             console.log(`Game end condition met by Player ${player.id} (${player.name}). Final round initiated. Game ends after player index: ${lastRoundPlayerIndex}.`);
             return true;
@@ -2083,10 +1912,6 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
         updateClickableState(); gameOverOverlay.classList.remove('hidden'); simulationPauseBtn.classList.add('hidden'); simulationStatusSpan.classList.add('hidden');
     }
 
-    // =========================================================================
-    // STATE MANAGEMENT & UTILITY FUNCTIONS
-    // =========================================================================
-
     function clearActionState() {
         clearGemSelectionState(); clearCardSelectionState(); currentAction = null;
         renderSelectionInfo(); updateClickableState();
@@ -2096,36 +1921,27 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
         selectedGemTypes = []; if (currentAction === 'SELECTING_GEMS') { currentAction = null; }
     }
     function clearCardSelectionState() {
-        // Remove visual selection from the previously selected element
         if (selectedCard && selectedCard.element) {
-             // Check if it's a card or deck element before removing class
              if (selectedCard.element.classList.contains('card') || selectedCard.element.classList.contains('deck') || selectedCard.element.classList.contains('reserved-card-small')) {
                  selectedCard.element.classList.remove('selected');
              }
         }
-        selectedCard = null; // Clear the logical selection
+        selectedCard = null;
 
-        // *** FIX: Remove the card preview element if it exists ***
         const existingPreview = selectionInfoDiv.querySelector('.card-preview-container');
         if (existingPreview) {
             console.log("[clearCardSelectionState] Removing existing card preview.");
             existingPreview.remove();
         }
-        // Also, ensure default text elements are visible again
         selectionInfoDiv.querySelectorAll('.selection-text').forEach(p => p.style.display = 'block');
-        selectedCardDisplay.textContent = 'None'; // Reset text display
-        // *** END FIX ***
+        selectedCardDisplay.textContent = 'None';
 
 
         if (currentAction === 'SELECTING_CARD') {
-            currentAction = null; // Reset action type if it was card selection
+            currentAction = null;
         }
-        // No need to call renderSelectionInfo/updateClickableState here,
-        // the calling function (like handleDeckClick) will handle subsequent updates.
-        // However, if called standalone, we might need them. Let's add them back
-        // just in case, as clearActionState calls this.
-        renderSelectionInfo(); // Render cleared state (buttons etc)
-        updateClickableState(); // Update clickable elements
+        renderSelectionInfo();
+        updateClickableState();
     }
     function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } return array; }
     function countOccurrences(arr, val) { return arr.reduce((count, current) => (current === val ? count + 1 : count), 0); }
@@ -2138,229 +1954,175 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
     function createTinyCardElement(cardData) { const cardEl = document.createElement('div'); if (!cardData) return cardEl; cardEl.classList.add('tiny-card', `card-border-${cardData.color}`); const costString = Object.entries(cardData.cost || {}).filter(([,c]) => c > 0).map(([t,c]) => `${c}${t.slice(0,1).toUpperCase()}`).join(', '); cardEl.title = `L${cardData.level} ${cardData.color} (${cardData.vp} VP)\nCost: ${costString || 'Free'}`; const vpSpan = document.createElement('span'); vpSpan.classList.add('tiny-card-vp'); vpSpan.textContent = cardData.vp > 0 ? cardData.vp : ''; const gemBonus = document.createElement('div'); gemBonus.classList.add('tiny-card-gem', `gem-${cardData.color}`); cardEl.appendChild(vpSpan); cardEl.appendChild(gemBonus); return cardEl; }
     function createGemFlowString(gemCounts) { return GEM_TYPES.map(type => ({ type, count: gemCounts[type] || 0 })).filter(item => item.count > 0).map(item => `<span class="gem-inline gem-${item.type}" title="${item.count} ${item.type}">${item.count}</span>`).join(' ') || '<span class="no-items">0</span>'; }
 
-    // =========================================================================
-    // UI UPDATES & STATE CHECKS
-    // =========================================================================
-
     function updateClickableState() {
-        // === Safety check at the very beginning ===
         if (!players || players.length === 0 || !players[currentPlayerIndex]) {
              console.warn("updateClickableState called before players array or current player fully initialized, skipping UI update for this cycle.");
-             return; // Exit the function early
+             return;
          }
 
         const player = players[currentPlayerIndex];
-        // Determine if input should be globally disabled
         const disableAll = gameTrulyFinished ||
                            isSimulationMode ||
-                           isOverlayVisible() || // Includes AI thinking overlay now
-                           (player && player.type === 'ai'); // Disable during AI's turn
+                           isOverlayVisible() ||
+                           (player && player.type === 'ai');
 
-        // Select all potentially interactive elements that might need disabling/enabling
         const allPotentiallyInteractive = document.querySelectorAll(
             '#gem-bank .gem',
             '#cards-area .card:not(.empty-slot)',
             '#cards-area .deck',
-            `.player-area .reserved-card-small`, // Select all reserved cards
+            `.player-area .reserved-card-small`,
             '#end-turn-early-btn',
             '#simulation-pause-btn'
-            // Add dynamic action buttons if they need explicit disabling? Usually just clearing them is enough.
         );
 
-        // --- Global Disable/Enable Pass ---
         allPotentiallyInteractive.forEach(el => {
             const isPauseButton = el.id === 'simulation-pause-btn';
-            // Disable if disableAll is true, UNLESS it's the pause button in active simulation mode
             const shouldBeDisabled = disableAll && !(isPauseButton && isSimulationMode && !gameTrulyFinished);
 
             el.classList.toggle('not-selectable', shouldBeDisabled);
             if (shouldBeDisabled) {
                 el.classList.remove('selected', 'not-affordable', 'card-affordable-now');
-                 // Specifically disable buttons
                  if (el.tagName === 'BUTTON') {
                      el.disabled = true;
                  }
-                 // Remove listeners might be overly complex here if class handles it
             } else {
-                 // Explicitly enable buttons if not globally disabled
                  if (el.tagName === 'BUTTON') {
                      el.disabled = false;
                  }
             }
         });
 
-        // Clear dynamic buttons if globally disabled
         if (disableAll) {
              dynamicActionButtonsContainer.innerHTML = '';
-             // Only clear logical selection state if disabling for reasons OTHER than modal overlays
-             // (Prevents losing selection when Return Gems / Noble Choice appears)
              if (!isOverlayVisible() && currentAction) {
                   console.log("Clearing action state due to global disable (not overlay)");
                   clearActionState();
              }
-             // Ensure non-button interactive areas are disabled
              document.querySelectorAll('.nobles-container .noble').forEach(el => el.style.pointerEvents = 'none');
-              // Re-enable pause button specifically if needed after global disable
               if (isSimulationMode && !gameTrulyFinished && simulationPauseBtn) {
                   simulationPauseBtn.disabled = false;
                   simulationPauseBtn.classList.remove('not-selectable');
               }
-             return; // Stop further processing
+             return;
          }
 
 
-        // --- Enable Interaction (Human Turn or Preview Click) ---
-        // Since disableAll is false, interaction is generally allowed.
         document.querySelectorAll('.nobles-container .noble').forEach(el => el.style.pointerEvents = 'auto');
 
 
-        // Specific Logic for Human Turn elements:
         const isHumanActiveTurn = player && player.type === 'human';
 
-        // Enable/Disable Gems (Only truly interactive for human turn)
         gemBankContainer.querySelectorAll('.gem').forEach(gemEl => {
              const gemType = gemEl.dataset.gemType;
              const isSelected = gemEl.classList.contains('selected');
              let clickable = false;
-             if (isHumanActiveTurn) { // Only check rules if it's human's turn
+             if (isHumanActiveTurn) {
                  clickable = isGemClickable(gemType, isSelected);
              }
              gemEl.classList.toggle('not-selectable', !clickable);
-             // Manage listener
              gemEl.removeEventListener('click', handleGemClickWrapper);
-             if (clickable) { // Add listener only if clickable for human
+             if (clickable) {
                  gemEl.addEventListener('click', handleGemClickWrapper);
              }
          });
 
-        // Enable/Disable Cards and Decks (Only truly interactive for human turn)
         document.querySelectorAll('#cards-area .card:not(.empty-slot), #cards-area .deck').forEach(el => {
-             let disable = true; // Assume disabled unless proven otherwise
+             let disable = true;
              const isDeck = el.classList.contains('deck');
              const isCard = el.classList.contains('card');
 
-             if (isHumanActiveTurn) { // Only enable for human turn
+             if (isHumanActiveTurn) {
                  let canPlayerAfford = false; let cardData = null;
                  if (isCard) cardData = getCardById(el.dataset.cardId);
                  if (player && cardData) canPlayerAfford = canAffordCard(player, cardData).canAfford;
 
                  if (currentAction === 'SELECTING_GEMS') { disable = true; }
                  else if (currentAction === 'SELECTING_CARD' && selectedCard?.element !== el) { disable = true; }
-                 else { // currentAction is null or matches this element
+                 else {
                      if (isDeck) {
                          if (el.classList.contains('empty') || (currentAction === null && player.reservedCards.length >= MAX_RESERVED_CARDS)) { disable = true; }
-                         else { disable = false; } // Deck is selectable if conditions met
+                         else { disable = false; }
                      } else if (isCard && cardData) {
                          const canReserve = player.reservedCards.length < MAX_RESERVED_CARDS;
                          if (currentAction === null && !canPlayerAfford && !canReserve) { disable = true; }
-                         else { disable = false; } // Card is selectable
-                     } else if (isCard && !cardData) { disable = true; } // Card DOM exists but data doesn't
-                     else { disable = false; } // Default to not disabled if human turn and not excluded above
+                         else { disable = false; }
+                     } else if (isCard && !cardData) { disable = true; }
+                     else { disable = false; }
                  }
 
-                 // Affordability styling
                  if (isCard && cardData && !disable) {
                      el.classList.toggle('not-affordable', !canPlayerAfford);
                      el.classList.toggle('card-affordable-now', canPlayerAfford && currentAction !== 'SELECTING_CARD');
                  } else {
                      el.classList.remove('not-affordable', 'card-affordable-now');
                  }
-             } // End if(isHumanActiveTurn) for cards/decks
+             }
 
              el.classList.toggle('not-selectable', disable);
-             // Manage listeners
              el.removeEventListener('click', handleVisibleCardClickWrapper);
-             el.onclick = null; // Clear potential deck onclick
-             if (!disable) { // Add listener only if interactive
+             el.onclick = null;
+             if (!disable) {
                  if(isCard) { el.addEventListener('click', handleVisibleCardClickWrapper); }
                  else if(isDeck) { const level = parseInt(el.id.split('-')[1], 10); if(!isNaN(level)) el.onclick = () => handleDeckClick(level); }
              }
          });
 
-         // Reserved Cards (Clickable always for preview, styled only for active human)
           document.querySelectorAll(`.player-area .reserved-card-small`).forEach(cardEl => {
-              cardEl.classList.remove('not-selectable'); // Preview click allowed
-              cardEl.removeEventListener('click', handleReservedCardClickWrapper); // Remove old
-              cardEl.addEventListener('click', handleReservedCardClickWrapper); // Add always
+              cardEl.classList.remove('not-selectable');
+              cardEl.removeEventListener('click', handleReservedCardClickWrapper);
+              cardEl.addEventListener('click', handleReservedCardClickWrapper);
 
               const cardPlayerArea = cardEl.closest('.player-area');
               const cardPlayerId = cardPlayerArea ? parseInt(cardPlayerArea.id.split('-')[2], 10) : -1;
 
-              // Reset styles first
               cardEl.classList.remove('not-affordable', 'card-affordable-now');
 
-              // Apply styles ONLY if it's the current HUMAN player's card
               if (isHumanActiveTurn && cardPlayerId === currentPlayerIndex) {
                   let canPlayerAfford = false;
                   let cardData = player.reservedCards?.find(c => c.id === cardEl.dataset.cardId);
                   if (cardData) canPlayerAfford = canAffordCard(player, cardData).canAfford;
 
                   cardEl.classList.toggle('not-affordable', !canPlayerAfford);
-                  // Only add highlight if no other card is actively selected in the main panel
                   cardEl.classList.toggle('card-affordable-now', canPlayerAfford && currentAction !== 'SELECTING_CARD');
               }
           });
 
-        // End Turn Button (Handled by initial global disable/enable pass)
-        // Simulation Pause Button (Handled by initial global disable/enable pass)
 
      }
 
      function isGemClickable(gemType, isSelectedVisual) {
-        // Basic checks: Must have gems in bank, cannot be gold
         if (bank[gemType] <= 0 || gemType === GOLD) return false;
 
-        // If interaction is blocked by current action (e.g., selecting a card), it's not clickable
         if (currentAction === 'SELECTING_CARD') return false;
 
         const currentSelection = selectedGemTypes;
         const currentCount = currentSelection.length;
         const currentUniqueCount = new Set(currentSelection).size;
 
-        // --- Logging for Debugging ---
-        // console.log(`[isGemClickable] Checking: ${gemType}, isSelectedVisual: ${isSelectedVisual}, currentCount: ${currentCount}, uniqueCount: ${currentUniqueCount}, bankCount: ${bank[gemType]}`);
 
-        // If the gem element is already visually selected, allow clicking to deselect it
         if (isSelectedVisual) {
-            // console.log(" -> Result: true (can deselect)");
             return true;
         }
 
-        // --- Logic for clicking a NOT visually selected gem ---
         else {
-            // Can always select the first gem
             if (currentCount === 0) {
-               // console.log(" -> Result: true (can select first gem)");
                return true;
             }
-            // Selecting the second gem
             else if (currentCount === 1) {
                const firstType = currentSelection[0];
-               // Can select a DIFFERENT second gem if available
                if (gemType !== firstType && bank[gemType] >= 1) {
-                    // console.log(" -> Result: true (can select 2nd different)");
                    return true;
                }
-               // Can select the SAME second gem IF bank has enough
                if (gemType === firstType && bank[gemType] >= MIN_GEMS_FOR_TAKE_TWO) {
-                    // console.log(` -> Result: true (can select 2nd identical, bank=${bank[gemType]} >= min=${MIN_GEMS_FOR_TAKE_TWO})`);
                    return true;
                }
-               // Otherwise, cannot select this gem as the second one
-               // console.log(" -> Result: false (cannot select 2nd gem - rules fail)");
                return false;
             }
-            // Selecting the third gem
             else if (currentCount === 2) {
-                // Can only select a third gem if the first two were DIFFERENT,
-                // this one is also DIFFERENT, and available in the bank.
                 const canSelectThird = (currentUniqueCount === 2 && !currentSelection.includes(gemType) && bank[gemType] >= 1);
-                // console.log(` -> Result: ${canSelectThird} (can select 3rd different?)`);
                return canSelectThird;
             }
-            // Cannot select more than 3 gems
-            else { // currentCount >= 3
-                // console.log(" -> Result: false (already have 3+ gems selected)");
+            else {
                 return false;
             }
         }
@@ -2404,14 +2166,10 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
     function logActionToHistory(player, actionType, details) { const logEntry = { turn: turnNumber, playerIndex: player.id, playerName: player.name, playerType: player.type, actionType: actionType, details: JSON.parse(JSON.stringify(details)) }; gameHistoryLog.push(logEntry); }
     function getThemeColorName(colorClass) { return THEME_COLOR_NAMES[colorClass] || 'Unknown'; }
 
-    // =========================================================================
-    // INITIAL SCRIPT EXECUTION
-    // =========================================================================
-
-    initializeApiKey(); // Prompt for or load API Key on page load
+    initializeApiKey();
     document.body.style.alignItems = 'center';
     document.body.style.justifyContent = 'center';
-    setupPlayerNameInputs(); // Populate initial player setup fields based on key status
-    setupEventListeners(); // Add all button/input listeners
+    setupPlayerNameInputs();
+    setupEventListeners();
 
-}); // End DOMContentLoaded
+});
