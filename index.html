@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Splendor: Legacy of Gems</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Cinzel+Decorative:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div id="setup-screen" class="active">
+        <div class="setup-content">
+            <div class="setup-header">
+                <h1 class="game-title-main">Splendor: Legacy of Gems</h1>
+                <div id="api-key-indicator-container" title="API Key Status">
+                    <svg id="api-key-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="28px" height="28px">
+                        <path d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+                    </svg>
+                    <span id="api-key-tooltip-text" class="api-key-tooltip">Checking API Key...</span>
+                </div>
+            </div>
+            <!-- Subtitle "Configure Your Game" removed -->
+
+            <div class="setup-panels-container">
+                <div class="setup-left-panel"> <!-- This will now stack above the right panel -->
+                    <h2 class="panel-title">Game Configuration</h2>
+
+                    <div class="setup-option">
+                        <label class="setup-label">Number of Players:</label>
+                        <div id="player-count-selector" class="button-group">
+                            <button class="btn btn-player-count" data-value="2">2P</button>
+                            <button class="btn btn-player-count" data-value="3">3P</button>
+                            <button class="btn btn-player-count active" data-value="4">4P</button>
+                        </div>
+                    </div>
+
+                    <div class="setup-option">
+                        <label for="timer-input" class="setup-label">Turn Timer (minutes, 0 = off):</label>
+                        <input type="number" id="timer-input" value="1.5" min="0" step="0.5" class="setup-input">
+                        <div id="timer-presets" class="button-group-small">
+                            <button class="btn btn-timer-preset" data-value="0">Off</button>
+                            <button class="btn btn-timer-preset" data-value="1">1:00</button>
+                            <button class="btn btn-timer-preset active" data-value="1.5">1:30</button>
+                            <button class="btn btn-timer-preset" data-value="2">2:00</button>
+                        </div>
+                        <small>(Timer applies to Human players only)</small>
+                    </div>
+
+                    <div class="setup-option">
+                        <label class="setup-label setup-label-inline toggle-switch-label" for="simulation-mode">
+                            <input type="checkbox" id="simulation-mode" class="toggle-switch-checkbox">
+                            <span class="toggle-switch-custom"></span>
+                            Run AI vs. AI Simulation
+                        </label>
+                        <small>(All players will be set to AI, timer disabled)</small>
+                    </div>
+
+                    <div id="simulation-speed-container" class="setup-option hidden">
+                        <label for="simulation-speed" class="setup-label">Simulation Speed (ms delay):</label>
+                        <input type="number" id="simulation-speed" value="200" min="0" step="50" class="setup-input">
+                        <small>(Delay between AI turns in simulation mode. 0 for max speed.)</small>
+                    </div>
+                </div>
+
+                <div class="setup-right-panel"> <!-- This will now stack below the left panel -->
+                    <h2 class="panel-title">Player Details</h2>
+                    <div id="player-names">
+                        <!-- Player setup entries will be dynamically inserted here by script.js -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="setup-footer">
+                <button id="start-game-btn" class="btn btn-confirm setup-start-button">
+                    <span class="start-icon">▶</span> Start Game
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-container" class="hidden">
+        <div id="game-board">
+            <div id="top-bar">
+                <div id="nobles-area">
+                    <h2>Nobles</h2>
+                    <div class="nobles-container">
+                        <!-- Nobles will be dynamically inserted here -->
+                    </div>
+                </div>
+                <div id="timer-area">
+                    <h2>Turn Timer</h2>
+                    <div id="timer-display">--:--</div>
+                </div>
+                <div id="game-status">
+                    <h2>Game Log</h2>
+                    <div id="log-messages">
+                    </div>
+                     <button id="end-turn-early-btn" class="btn btn-secondary hidden">End Turn</button>
+                     <button id="simulation-pause-btn" class="btn btn-secondary hidden">Pause Sim</button>
+                     <span id="simulation-status" class="hidden"></span>
+                </div>
+            </div>
+
+            <div id="main-area">
+                <div id="bank-area">
+                    <h2>Gem Bank</h2>
+                    <div id="gem-bank" class="gems-container">
+                    </div>
+                     <div id="selection-info">
+                        <p class="selection-text">Selected Gems: <span id="selected-gems-display">None</span></p>
+                        <p class="selection-text">Selected Card: <span id="selected-card-display">None</span></p>
+                         <div id="dynamic-action-buttons" style="margin-top: 8px;">
+                         </div>
+                    </div>
+                </div>
+
+                <div id="cards-area">
+                    <div class="card-level-row" id="level-3-row">
+                        <h3>Level 3</h3>
+                        <div class="deck" id="deck-3" title="Level 3 Deck">Deck (<span id="deck-3-count">0</span>)</div>
+                        <div class="visible-cards" id="visible-cards-3">
+                        </div>
+                    </div>
+                     <div class="card-level-row" id="level-2-row">
+                        <h3>Level 2</h3>
+                        <div class="deck" id="deck-2" title="Level 2 Deck">Deck (<span id="deck-2-count">0</span>)</div>
+                        <div class="visible-cards" id="visible-cards-2">
+                        </div>
+                    </div>
+                     <div class="card-level-row" id="level-1-row">
+                        <h3>Level 1</h3>
+                        <div class="deck" id="deck-1" title="Level 1 Deck">Deck (<span id="deck-1-count">0</span>)</div>
+                        <div class="visible-cards" id="visible-cards-1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="players-area">
+            </div>
+        </div>
+
+        <div id="return-gems-overlay" class="hidden overlay-modal">
+            <div class="modal-content">
+                <h2>Return Gems</h2>
+                <p>You have too many total tokens (<span id="return-gems-count">0</span>/10). Please select <span id="return-gems-needed">0</span> non-gold gems to return.</p>
+                <div id="return-gems-player-display" class="gems-container small-gems"></div>
+                <div id="return-gems-selection-display">Selected to return: 0/0</div>
+                <button id="confirm-return-gems-btn" class="btn" disabled>Confirm Return</button>
+            </div>
+        </div>
+
+         <div id="game-over-overlay" class="hidden overlay-modal">
+            <div class="modal-content">
+                <h2>Game Over!</h2>
+                <div id="final-scores">
+                </div>
+                <button id="play-again-btn" class="btn btn-primary">Play Again</button>
+            </div>
+        </div>
+
+        <div id="noble-choice-overlay" class="hidden overlay-modal">
+            <div class="modal-content">
+                <h2>Choose Your Noble</h2>
+                <p>You qualify for multiple nobles. Please select one to visit:</p>
+                <div id="noble-choice-options" class="nobles-container">
+                </div>
+            </div>
+        </div>
+
+        <div id="ai-thinking-overlay" class="hidden overlay-fullscreen">
+            <div class="overlay-content">
+                <div class="spinner"></div>
+                <p>AI is thinking...</p>
+                <p id="ai-thinking-player-name"></p>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
