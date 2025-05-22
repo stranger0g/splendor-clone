@@ -116,7 +116,6 @@
                     <div id="gem-bank" class="gems-container">
                         <!-- Gem bank will be dynamically inserted here -->
                     </div>
-                     <!-- Old #selection-info div is REMOVED as per plan -->
                 </div>
 
                 <div id="cards-area">
@@ -143,7 +142,7 @@
                             </div>
                         </div>
                     </div>
-                    <div id="action-panel"> <!-- New action panel, moved inside cards-area -->
+                    <div id="action-panel">
                         <div id="ap-selected-items">
                             <p id="ap-selection-text">Select gems or a card.</p>
                             <div id="ap-selected-gems-display" class="gems-container small-gems">
@@ -154,7 +153,6 @@
                             <!-- Large card preview or placeholder will be dynamically inserted here -->
                         </div>
                         <div id="ap-action-buttons">
-                            <!-- Purchase/Reserve/Confirm buttons will be dynamically inserted here -->
                             <button id="ap-cancel-btn" class="btn btn-warning hidden">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="margin-right: 5px; vertical-align: middle;"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                                 <span class="btn-text-placeholder">Cancel</span>
@@ -163,8 +161,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- The old #action-panel that was a direct child of #main-area is REMOVED -->
 
             <div id="players-area">
                 <!-- Player areas will be dynamically inserted here -->
@@ -177,7 +173,9 @@
                 <p>You have too many total tokens (<span id="return-gems-count">0</span>/10). Please select <span id="return-gems-needed">0</span> non-gold gems to return.</p>
                 <div id="return-gems-player-display" class="gems-container small-gems"></div>
                 <div id="return-gems-selection-display">Selected to return: 0/0</div>
-                <button id="confirm-return-gems-btn" class="btn btn-confirm" disabled>Confirm Return</button>
+                <div class="modal-actions">
+                    <button id="confirm-return-gems-btn" class="btn btn-confirm" disabled>Confirm Return</button>
+                </div>
             </div>
         </div>
 
@@ -186,7 +184,9 @@
                 <h2>Game Over!</h2>
                 <div id="final-scores">
                 </div>
-                <button id="play-again-btn" class="btn btn-primary">Play Again</button>
+                <div class="modal-actions">
+                    <button id="play-again-btn" class="btn btn-primary">Play Again</button>
+                </div>
             </div>
         </div>
 
@@ -195,6 +195,9 @@
                 <h2>Choose Your Noble</h2>
                 <p>You qualify for multiple nobles. Please select one to visit:</p>
                 <div id="noble-choice-options" class="nobles-container">
+                </div>
+                <div class="modal-actions">
+                    <button id="confirm-noble-choice-btn" class="btn btn-confirm" disabled>Confirm Choice</button>
                 </div>
             </div>
         </div>

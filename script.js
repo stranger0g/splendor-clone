@@ -3,7 +3,8 @@ const SVG_ICONS = {
     pause: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>',
     play: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M8 5v14l11-7z"/></svg>',
     flag: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6zM5 6h7.4l.4 2H19v2h-3.6l-.4-2H7V6zm0 11v-2h7.6l.4 2H19v2h-5.6l-.4-2H5z"/></svg>',
-    cancel: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>'
+    cancel: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>',
+    gear: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M19.44 12.99l-.01.02c.04-.33.08-.67.08-1.01 0-.34-.03-.68-.07-1.01l.01.02 2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.44 2.24 14.2 2 13.96 2h-4c-.25 0-.48.24-.49.51l-.38 2.65c-.61.25-1.17.59-1.69-.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65-.01-.02c-.04.33-.07.67-.07 1.01 0 .34.03.68.07 1.01l.01-.02-2.11 1.65c-.19-.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69-.98l.38 2.65c.01.27.24.51.49.51h4c.25 0 .48-.24.49.51l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61.22l2-3.46c.12-.22-.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>'
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -51,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const playAgainBtn = document.getElementById('play-again-btn');
     const nobleChoiceOverlay = document.getElementById('noble-choice-overlay');
     const nobleChoiceOptionsContainer = document.getElementById('noble-choice-options');
+    const confirmNobleChoiceBtn = document.getElementById('confirm-noble-choice-btn');
     const aiThinkingOverlay = document.getElementById('ai-thinking-overlay');
     const aiThinkingPlayerName = document.getElementById('ai-thinking-player-name');
 
@@ -287,7 +289,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const humanBtn = document.createElement('button');
             humanBtn.classList.add('btn', 'btn-player-type'); humanBtn.dataset.type = 'human'; humanBtn.innerHTML = '👤 Human';
             const aiBtn = document.createElement('button');
-            aiBtn.classList.add('btn', 'btn-player-type'); aiBtn.dataset.type = 'ai'; aiBtn.innerHTML = '🤖 AI';
+            aiBtn.classList.add('btn', 'btn-player-type'); aiBtn.dataset.type = 'ai'; aiBtn.innerHTML = SVG_ICONS.gear ? `${SVG_ICONS.gear} AI` : '🤖 AI';
+
 
             if (simulationModeCheckbox && simulationModeCheckbox.checked) {
                 aiBtn.classList.add('active'); humanBtn.disabled = true; aiBtn.disabled = true;
@@ -537,16 +540,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 rc.removeEventListener('click', handleReservedCardClickWrapper); 
                 rc.addEventListener('click', handleReservedCardClickWrapper);
             });
-
-             if (player.type === 'ai') {
-                 const badge = document.createElement('span');
-                 badge.classList.add('ai-badge');
-                 badge.textContent = 'AI';
-                  if(!playerAreaEl.querySelector('.ai-badge')){
-                       const header = playerAreaEl.querySelector('.player-header');
-                       if (header) header.appendChild(badge);
-                  }
-             }
             highlightActivePlayer();
             updateClickableState();
         } else {
@@ -858,9 +851,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const header = document.createElement('div');
         header.classList.add('player-header');
+        
         const nameSpan = document.createElement('span');
         nameSpan.classList.add('player-name');
-        nameSpan.textContent = player.name;
+        if (player.type === 'ai') {
+            const badgeSpan = document.createElement('span');
+            badgeSpan.classList.add('ai-badge');
+            badgeSpan.innerHTML = SVG_ICONS.gear || '⚙️'; // Use gear icon or fallback
+            nameSpan.appendChild(badgeSpan);
+            nameSpan.appendChild(document.createTextNode(" ")); // Space after badge
+        }
+        nameSpan.appendChild(document.createTextNode(player.name));
+
         const scoreSpan = document.createElement('span');
         scoreSpan.classList.add('player-score');
         scoreSpan.textContent = `VP: ${player.score}`;
@@ -899,7 +901,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const bonusHeader = document.createElement('h4');
         bonusHeader.textContent = 'Bonuses';
         const bonusContainer = document.createElement('div');
-        bonusContainer.classList.add('player-cards');
+        bonusContainer.classList.add('player-bonuses-display'); // Renamed class
         let hasBonuses = false;
         GEM_TYPES.forEach(gemType => {
             const count = player.bonuses[gemType];
@@ -937,7 +939,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (player.nobles.length > 0) {
              player.nobles.forEach(nobleData => {
                 const nobleEl = createNobleElement(nobleData);
-                nobleEl.style.transform = 'scale(0.7)'; 
+                // Style applied via CSS: .player-nobles-display .noble
                 playerNoblesContainer.appendChild(nobleEl);
              });
         } else {
@@ -963,11 +965,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const player = players[currentPlayerIndex];
          if (!player || player.type === 'ai' || isSimulationMode || isOverlayVisible() || gameTrulyFinished) return;
         const gemEl = event.currentTarget;
-        if (gemEl.classList.contains('not-selectable') && !gemEl.classList.contains('selected')) return;
         
         const gemType = gemEl.dataset.gemType;
          if (!isGemClickable(gemType, gemEl.classList.contains('selected'))) {
-            return;
+             if (!gemEl.classList.contains('selected')) return; // If not clickable AND not selected, do nothing.
          }
         handleGemClick(gemType, gemEl);
     }
@@ -995,8 +996,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!player || player.type === 'ai' || isSimulationMode || isOverlayVisible() || gameTrulyFinished) return;
 
         const cardEl = event.currentTarget;
-        // Allow clicking if it's already selected OR if it's not marked 'not-selectable'
-        // This means, if it's selectable, OR if it's already selected, proceed.
         if (cardEl.classList.contains('not-selectable') && !(selectedCard && selectedCard.element === cardEl)) { 
             return;
         }
@@ -1011,43 +1010,66 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleGemClick(gemType, clickedGemEl) {
         if (gemType === GOLD) return;
-
+    
         if (currentAction === 'SELECTING_CARD' && selectedCard) {
-            clearCardSelectionState(); 
+            clearCardSelectionState();
         }
         currentAction = 'SELECTING_GEMS';
-
+    
         const isSelectedVisual = clickedGemEl.classList.contains('selected');
-        
-        if (isSelectedVisual) { 
-            const deselectedType = clickedGemEl.dataset.gemType;
-            selectedGemTypes = selectedGemTypes.filter(g => g !== deselectedType);
-            gemBankContainer.querySelectorAll(`.gem[data-gem-type='${deselectedType}'].selected`).forEach(el => {
-                el.classList.remove('selected');
-            });
-            if (selectedGemTypes.length === 0) currentAction = null;
-        } else { 
+        // Check based on logical selection state (selectedGemTypes) rather than just visual state of the clicked element
+        // This is because multiple DOM elements might represent the same gem type in bank (though current impl. uses one with count)
+        const occurrencesInSelection = selectedGemTypes.filter(g => g === gemType).length;
+    
+        if (occurrencesInSelection > 0) { // Gem type is logically selected, try to deselect
+            if (occurrencesInSelection === 2) { // It's a pair
+                selectedGemTypes = selectedGemTypes.filter(g => g !== gemType); // Remove both
+            } else { // It's a single one (either alone or with other different gems)
+                const index = selectedGemTypes.indexOf(gemType);
+                if (index > -1) {
+                    selectedGemTypes.splice(index, 1);
+                }
+            }
+        } else { // Gem type is not logically selected, try to select
             if (selectedGemTypes.length === 0) {
-                selectedGemTypes.push(gemType);
-                clickedGemEl.classList.add('selected');
+                if (bank[gemType] >= 1) selectedGemTypes.push(gemType);
             } else if (selectedGemTypes.length === 1) {
-                if (selectedGemTypes[0] === gemType && bank[gemType] >= MIN_GEMS_FOR_TAKE_TWO) {
-                    selectedGemTypes.push(gemType);
-                    clickedGemEl.classList.add('selected'); 
-                } else if (selectedGemTypes[0] !== gemType && bank[gemType] >= 1) {
-                    selectedGemTypes.push(gemType);
-                    clickedGemEl.classList.add('selected');
+                const firstType = selectedGemTypes[0];
+                if (gemType === firstType && bank[gemType] >= MIN_GEMS_FOR_TAKE_TWO) {
+                    selectedGemTypes.push(gemType); // Form a pair
+                } else if (gemType !== firstType && bank[gemType] >= 1) {
+                    selectedGemTypes.push(gemType); // Add a second different gem
                 }
             } else if (selectedGemTypes.length === 2) {
-                if (new Set(selectedGemTypes).size === 2 && !selectedGemTypes.includes(gemType) && bank[gemType] >= 1) {
-                    selectedGemTypes.push(gemType);
-                    clickedGemEl.classList.add('selected');
+                const uniqueCount = new Set(selectedGemTypes).size;
+                if (uniqueCount === 2 && !selectedGemTypes.includes(gemType) && bank[gemType] >= 1) {
+                    selectedGemTypes.push(gemType); // Add a third different gem
                 }
             }
         }
+    
+        // Visual Update
+        gemBankContainer.querySelectorAll('.gem.selected').forEach(el => el.classList.remove('selected'));
+        const gemsToVisuallySelect = new Set();
+        if (selectedGemTypes.length === 2 && selectedGemTypes[0] === selectedGemTypes[1]) {
+            gemsToVisuallySelect.add(selectedGemTypes[0]);
+        } else {
+            selectedGemTypes.forEach(typeInSelection => {
+                gemsToVisuallySelect.add(typeInSelection);
+            });
+        }
+        gemsToVisuallySelect.forEach(typeToSelect => {
+            gemBankContainer.querySelectorAll(`.gem[data-gem-type='${typeToSelect}']`).forEach(el => el.classList.add('selected'));
+        });
+    
+        if (selectedGemTypes.length === 0) {
+            currentAction = null;
+        }
+    
         renderSelectionInfo();
         updateClickableState();
     }
+    
 
     function handleCardClick(type, level, cardId, cardEl) {
         if (currentAction === 'SELECTING_GEMS' && selectedGemTypes.length > 0) {
@@ -1056,11 +1078,11 @@ document.addEventListener('DOMContentLoaded', () => {
         currentAction = 'SELECTING_CARD'; 
 
         if (selectedCard && selectedCard.element === cardEl) {
-            clearActionState(); // Deselect if clicking the same card
+            clearActionState(); 
             return;
         }
             
-        if (selectedCard && selectedCard.element) { // Deselect previous card
+        if (selectedCard && selectedCard.element) { 
             selectedCard.element.classList.remove('selected');
         }
         
@@ -1192,7 +1214,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (count === 3 && uniqueCount === 3) return gems.every(type => bank[type] >= 1);
         if (count === 2 && uniqueCount === 1) return bank[gems[0]] >= MIN_GEMS_FOR_TAKE_TWO;
         if (count === 2 && uniqueCount === 2) return gems.every(type => bank[type] >= 1);
-        if (count === 1) return bank[gems[0]] >= 1;
+        if (count === 1) return bank[gems[0]] >= 1; // Allow taking one gem if it's the only one selected
         return false;
     }
 
@@ -1613,19 +1635,41 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
     }
 
     function showNobleChoiceOverlay(player, eligibleNobles, callback) {
-        if (!nobleChoiceOptionsContainer || !nobleChoiceOverlay) return;
+        if (!nobleChoiceOptionsContainer || !nobleChoiceOverlay || !confirmNobleChoiceBtn) return;
+        
         nobleChoiceOptionsContainer.innerHTML = '';
+        confirmNobleChoiceBtn.disabled = true; 
+        let selectedNobleForChoice = null; 
+
         eligibleNobles.forEach(nobleData => {
-            const nobleEl = createNobleElement(nobleData); nobleEl.classList.add('clickable');
-            nobleEl.onclick = () => { handleNobleChoice(player, nobleData, callback); updateClickableState(); };
-            nobleChoiceOptionsContainer.appendChild(nobleEl); });
-        nobleChoiceOverlay.classList.remove('hidden'); updateClickableState();
+            const nobleEl = createNobleElement(nobleData); 
+            nobleEl.classList.add('clickable');
+            nobleEl.dataset.nobleId = nobleData.id;
+
+            nobleEl.onclick = () => {
+                nobleChoiceOptionsContainer.querySelectorAll('.noble.selected-for-choice').forEach(n => n.classList.remove('selected-for-choice'));
+                nobleEl.classList.add('selected-for-choice');
+                selectedNobleForChoice = nobleData; 
+                confirmNobleChoiceBtn.disabled = false; 
+            };
+            nobleChoiceOptionsContainer.appendChild(nobleEl); 
+        });
+
+        confirmNobleChoiceBtn.onclick = () => {
+            if (selectedNobleForChoice) {
+                handleNobleChoice(player, selectedNobleForChoice, callback);
+            }
+        };
+        
+        nobleChoiceOverlay.classList.remove('hidden'); 
+        updateClickableState();
     }
 
     function handleNobleChoice(player, chosenNoble, callback) {
         if (nobleChoiceOverlay) nobleChoiceOverlay.classList.add('hidden');
         if (awardNoble(player, chosenNoble)) { renderNobles(); renderPlayerArea(player.id); }
         if (callback) callback();
+        updateClickableState(); // Ensure main UI is re-enabled
     }
 
     function checkForGemLimit(player, callback) {
@@ -1676,18 +1720,18 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
             const totalGemsReturned = Object.values(playerStats.gemsReturnedOverLimit).reduce((s, c) => s + c, 0); const totalActions = playerStats.gemTakeActions + playerStats.purchaseActions + playerStats.reserveActions;
             const actionDist = { gem: totalActions > 0 ? ((playerStats.gemTakeActions / totalActions) * 100).toFixed(1) : 'N/A', purchase: totalActions > 0 ? ((playerStats.purchaseActions / totalActions) * 100).toFixed(1) : 'N/A', reserve: totalActions > 0 ? ((playerStats.reserveActions / totalActions) * 100).toFixed(1) : 'N/A' };
             const playerEntryDiv = document.createElement('details'); playerEntryDiv.classList.add('player-result-entry-detailed'); if (isWinner) playerEntryDiv.classList.add('winner'); playerEntryDiv.open = (rank === 1);
-            const summary = document.createElement('summary'); summary.classList.add('player-result-header-detailed'); let rankSuffix = 'th'; if (rank === 1 && !isWinner && winners.length > 1) rankSuffix = 'st (Tied)'; else if (rank === 1) rankSuffix = 'st'; else if (rank === 2) rankSuffix = 'nd'; else if (rank === 3) rankSuffix = 'rd';
-            summary.innerHTML = `<span class="player-rank">${isWinner ? '🏆' : ''} ${rank}${rankSuffix}</span> <span class="player-name-endgame">${p.name} ${p.type === 'ai' ? '[AI]' : ''} ${playerStats.isFirstPlayer ? '(P1)' : ''} ${playerStats.triggeredGameEnd ? '[Triggered End]' : ''}</span> <span class="player-score-endgame">${p.score} VP</span> <span class="player-summary-stats">(Cards: ${p.cards.length} | Turns: ${playerStats.turnsTaken})</span>`; playerEntryDiv.appendChild(summary);
+            const summary = document.createElement('summary'); summary.classList.add('player-result-header-detailed', 'details-summary-toggle'); let rankSuffix = 'th'; if (rank === 1 && !isWinner && winners.length > 1) rankSuffix = 'st (Tied)'; else if (rank === 1) rankSuffix = 'st'; else if (rank === 2) rankSuffix = 'nd'; else if (rank === 3) rankSuffix = 'rd';
+            summary.innerHTML = `<span class="player-rank">${isWinner ? '🏆' : ''} ${rank}${rankSuffix}</span> <span class="player-name-endgame">${p.name} ${p.type === 'ai' ? (SVG_ICONS.gear ? `<span class="ai-badge">${SVG_ICONS.gear}</span>` : '[AI]') : ''} ${playerStats.isFirstPlayer ? '(P1)' : ''} ${playerStats.triggeredGameEnd ? '[Triggered End]' : ''}</span> <span class="player-score-endgame">${p.score} VP</span> <span class="player-summary-stats">(Cards: ${p.cards.length} | Turns: ${playerStats.turnsTaken})</span>`; playerEntryDiv.appendChild(summary);
             const detailsContainer = document.createElement('div'); detailsContainer.classList.add('player-result-details-grid'); const col1 = document.createElement('div'); col1.classList.add('stat-column');
-            col1.innerHTML = `<div class="stat-category"><h4>VP Breakdown</h4><div class="stat-items"><span>Cards: ${vpFromCards} VP</span><span>Nobles: ${vpFromNobles} VP</span>${playerStats.turnReached15VP ? `<span>Reached ${WINNING_SCORE} VP: Turn ${playerStats.turnReached15VP}</span>` : ''}</div></div>`
-                           + `<div class="stat-category"><h4>Purchased (${p.cards.length}) <span class="details-inline">(L1:${playerStats.cardsPurchasedByLevel[1]}/L2:${playerStats.cardsPurchasedByLevel[2]}/L3:${playerStats.cardsPurchasedByLevel[3]})</span></h4><div class="cards-summary purchased-cards-summary">${p.cards.length > 0 ? p.cards.map(card => createTinyCardElement(card).outerHTML).join('') : '<span class="no-items">None</span>'}</div><div class="stat-items sub-stats"><span>Avg VP/Card: ${avgVpPerCard}</span><span>From Reserve: ${playerStats.purchasedFromReserveCount} / Board: ${playerStats.purchasedFromBoardCount}</span><span>Free Purchases: ${playerStats.selfSufficientPurchases}</span></div></div>`
-                           + `<div class="stat-category"><h4>Reserved (${p.reservedCards.length})</h4><div class="cards-summary reserved-cards-summary">${p.reservedCards.length > 0 ? p.reservedCards.map(card => createTinyCardElement(card).outerHTML).join('') : '<span class="no-items">None</span>'}</div></div>`
-                           + `<details class="sub-details"><summary>Reservation History (${playerStats.cardsReservedTotalCount} Total)</summary><div class="stat-category inner-stat-category"><h4>All Reserved Cards (Ever)</h4><div class="cards-summary reserved-cards-summary">${playerStats.allReservedCardsData.length > 0 ? playerStats.allReservedCardsData.map(card => createTinyCardElement(card).outerHTML).join('') : '<span class="no-items">None</span>'}</div><div class="stat-items sub-stats"><span>Deck Res (L1/L2/L3): ${playerStats.deckReservations[1]}/${playerStats.deckReservations[2]}/${playerStats.deckReservations[3]}</span><span>Board Res (L1/L2/L3): ${playerStats.boardReservations[1]}/${playerStats.boardReservations[2]}/${playerStats.boardReservations[3]}</span><span>Purchase Rate: ${reservationSuccessRate}%</span></div></div></details>`
-                           + `<div class="stat-category"><h4>Nobles (${p.nobles.length})</h4><div class="summary-items nobles-summary">${p.nobles.length > 0 ? p.nobles.map(noble => { const nobleEl = createNobleElement(noble); nobleEl.style.transform = 'scale(0.7)'; nobleEl.style.margin = '-5px'; return `<span title="Acquired Turn ${playerStats.noblesAcquiredTurn[noble.id] || '?'}">${nobleEl.outerHTML}</span>`; }).join('') : '<span class="no-items">None</span>'}</div></div>`; detailsContainer.appendChild(col1);
+            col1.innerHTML = `<div class="stat-category"><h4><span class="stat-icon">🏆</span>VP Breakdown</h4><div class="stat-items"><span>Cards: ${vpFromCards} VP</span><span>Nobles: ${vpFromNobles} VP</span>${playerStats.turnReached15VP ? `<span>Reached ${WINNING_SCORE} VP: Turn ${playerStats.turnReached15VP}</span>` : ''}</div></div>`
+                           + `<div class="stat-category"><h4><span class="stat-icon">🃏</span>Purchased (${p.cards.length}) <span class="details-inline">(L1:${playerStats.cardsPurchasedByLevel[1]}/L2:${playerStats.cardsPurchasedByLevel[2]}/L3:${playerStats.cardsPurchasedByLevel[3]})</span></h4><div class="cards-summary purchased-cards-summary">${p.cards.length > 0 ? p.cards.map(card => createTinyCardElement(card).outerHTML).join('') : '<span class="no-items">None</span>'}</div><div class="stat-items sub-stats"><span>Avg VP/Card: ${avgVpPerCard}</span><span>From Reserve: ${playerStats.purchasedFromReserveCount} / Board: ${playerStats.purchasedFromBoardCount}</span><span>Free Purchases: ${playerStats.selfSufficientPurchases}</span></div></div>`
+                           + `<div class="stat-category"><h4><span class="stat-icon">🔒</span>Reserved (${p.reservedCards.length})</h4><div class="cards-summary reserved-cards-summary">${p.reservedCards.length > 0 ? p.reservedCards.map(card => createTinyCardElement(card).outerHTML).join('') : '<span class="no-items">None</span>'}</div></div>`
+                           + `<details class="sub-details"><summary class="details-summary-toggle"><span class="stat-icon">📜</span>Reservation History (${playerStats.cardsReservedTotalCount} Total)</summary><div class="stat-category inner-stat-category"><h4>All Reserved Cards (Ever)</h4><div class="cards-summary reserved-cards-summary">${playerStats.allReservedCardsData.length > 0 ? playerStats.allReservedCardsData.map(card => createTinyCardElement(card).outerHTML).join('') : '<span class="no-items">None</span>'}</div><div class="stat-items sub-stats"><span>Deck Res (L1/L2/L3): ${playerStats.deckReservations[1]}/${playerStats.deckReservations[2]}/${playerStats.deckReservations[3]}</span><span>Board Res (L1/L2/L3): ${playerStats.boardReservations[1]}/${playerStats.boardReservations[2]}/${playerStats.boardReservations[3]}</span><span>Purchase Rate: ${reservationSuccessRate}%</span></div></div></details>`
+                           + `<div class="stat-category"><h4><span class="stat-icon">👑</span>Nobles (${p.nobles.length})</h4><div class="summary-items nobles-summary">${p.nobles.length > 0 ? p.nobles.map(noble => { const nobleEl = createNobleElement(noble); nobleEl.style.transform = 'scale(0.7)'; nobleEl.style.margin = '-5px'; return `<span title="Acquired Turn ${playerStats.noblesAcquiredTurn[noble.id] || '?'}">${nobleEl.outerHTML}</span>`; }).join('') : '<span class="no-items">None</span>'}</div></div>`; detailsContainer.appendChild(col1);
             const col2 = document.createElement('div'); col2.classList.add('stat-column');
-            col2.innerHTML = `<div class="stat-category"><h4>Bonuses (${totalBonuses} Total)</h4><div class="summary-items bonuses-summary">${totalBonuses > 0 ? GEM_TYPES.map(type => { const count = p.bonuses[type] || 0; return count > 0 ? `<div class="player-card-count gem-${type}" title="${count} ${type} bonus">${count}</div>` : ''; }).join('') : '<span class="no-items">None</span>'}</div><div class="stat-items sub-stats"><span>Avg Bonus/Card: ${avgBonusPerCard}</span></div></div>`
-                           + `<details class="sub-details"><summary>Token Management</summary><div class="stat-category inner-stat-category"><h4>Final Tokens Held</h4><div class="summary-items gems-summary small-gems">${[...GEM_TYPES, GOLD].map(type => { const count = p.gems[type] || 0; return count > 0 ? createGemElement(type, count, true).outerHTML : ''; }).join('') || '<span class="no-items">None</span>'}</div><h4>Token Flow (Cumulative)</h4><div class="stat-items sub-stats flow-stats"><span>Taken: ${createGemFlowString(playerStats.gemsTaken)} (${totalGemsTaken} total)</span><span>Gold Taken: ${playerStats.goldTaken}</span><span>Spent: ${createGemFlowString(playerStats.gemsSpent)} (${totalGemsSpent} total)</span><span>Gold Spent: ${playerStats.goldSpent} (${goldDependency}% of cost)</span><span>Returned (Limit): ${createGemFlowString(playerStats.gemsReturnedOverLimit)} (${totalGemsReturned} total)</span><span>Peak Held (Total): ${playerStats.peakGemsHeld}</span></div><h4>Token Actions</h4><div class="stat-items sub-stats"><span>Take 3 Actions: ${playerStats.take3Actions} (${percentTake3}%)</span><span>Take 2 Actions: ${playerStats.take2Actions} (${percentTake2}%)</span><span>Avg Tokens/Take Action: ${avgGemsPerTakeAction}</span></div><h4>Token Limit Interaction</h4><div class="stat-items sub-stats"><span>Turns Ended at Limit: ${playerStats.turnsEndedExactLimit}</span><span>Turns Ended Below Limit: ${playerStats.turnsEndedBelowLimit}</span></div></div></details>`
-                           + `<div class="stat-category"><h4>Action Distribution (${totalActions} Total)</h4><div class="stat-items action-dist-stats"><span>Token Takes: ${actionDist.gem}%</span><span>Purchases: ${actionDist.purchase}%</span><span>Reserves: ${actionDist.reserve}%</span></div><div class="stat-items sub-stats"><span>Avg VP/Turn: ${avgVpPerTurn}</span></div></div>`; detailsContainer.appendChild(col2);
+            col2.innerHTML = `<div class="stat-category"><h4><span class="stat-icon">💎</span>Bonuses (${totalBonuses} Total)</h4><div class="summary-items bonuses-summary">${totalBonuses > 0 ? GEM_TYPES.map(type => { const count = p.bonuses[type] || 0; return count > 0 ? `<div class="player-card-count gem-${type}" title="${count} ${type} bonus">${count}</div>` : ''; }).join('') : '<span class="no-items">None</span>'}</div><div class="stat-items sub-stats"><span>Avg Bonus/Card: ${avgBonusPerCard}</span></div></div>`
+                           + `<details class="sub-details"><summary class="details-summary-toggle"><span class="stat-icon">💰</span>Token Management</summary><div class="stat-category inner-stat-category"><h4>Final Tokens Held</h4><div class="summary-items gems-summary small-gems">${[...GEM_TYPES, GOLD].map(type => { const count = p.gems[type] || 0; return count > 0 ? createGemElement(type, count, true).outerHTML : ''; }).join('') || '<span class="no-items">None</span>'}</div><h4>Token Flow (Cumulative)</h4><div class="stat-items sub-stats flow-stats"><span>Taken: ${createGemFlowString(playerStats.gemsTaken)} (${totalGemsTaken} total)</span><span>Gold Taken: ${playerStats.goldTaken}</span><span>Spent: ${createGemFlowString(playerStats.gemsSpent)} (${totalGemsSpent} total)</span><span>Gold Spent: ${playerStats.goldSpent} (${goldDependency}% of cost)</span><span>Returned (Limit): ${createGemFlowString(playerStats.gemsReturnedOverLimit)} (${totalGemsReturned} total)</span><span>Peak Held (Total): ${playerStats.peakGemsHeld}</span></div><h4>Token Actions</h4><div class="stat-items sub-stats"><span>Take 3 Actions: ${playerStats.take3Actions} (${percentTake3}%)</span><span>Take 2 Actions: ${playerStats.take2Actions} (${percentTake2}%)</span><span>Avg Tokens/Take Action: ${avgGemsPerTakeAction}</span></div><h4>Token Limit Interaction</h4><div class="stat-items sub-stats"><span>Turns Ended at Limit: ${playerStats.turnsEndedExactLimit}</span><span>Turns Ended Below Limit: ${playerStats.turnsEndedBelowLimit}</span></div></div></details>`
+                           + `<div class="stat-category"><h4><span class="stat-icon">📊</span>Action Distribution (${totalActions} Total)</h4><div class="stat-items action-dist-stats"><span>Token Takes: ${actionDist.gem}%</span><span>Purchases: ${actionDist.purchase}%</span><span>Reserves: ${actionDist.reserve}%</span></div><div class="stat-items sub-stats"><span>Avg VP/Turn: ${avgVpPerTurn}</span></div></div>`; detailsContainer.appendChild(col2);
             playerEntryDiv.appendChild(detailsContainer); if(finalScoresDiv) finalScoresDiv.appendChild(playerEntryDiv);
         });
         if (winners.length > 1) { const tieMessage = document.createElement('p'); tieMessage.classList.add('tie-message'); tieMessage.textContent = `Tie between: ${winners.map(w => w.name).join(' & ')}! (Fewest cards purchased wins)`; if(finalScoresDiv) finalScoresDiv.appendChild(tieMessage); updateLog(`Game ended in a tie! Winner(s) determined by fewest cards.`); }
@@ -1780,7 +1824,6 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
                 apCancelBtn.classList.add('hidden');
             }
             if (!isOverlayVisible() && currentAction) {
-                // clearActionState called within startTurn/endTurn, avoid recursion here
             }
             document.querySelectorAll('.nobles-container .noble.clickable').forEach(el => el.style.pointerEvents = 'none');
             if (isSimulationMode && !gameTrulyFinished && simulationPauseBtn) {
@@ -1815,7 +1858,6 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
                      } else if (el.classList.contains('card')) {
                          const cardData = getCardById(el.dataset.cardId);
                          const canAfford = cardData ? canAffordCard(player, cardData).canAfford : false;
-                         // Can select to reserve if limit not reached, OR can select to buy if affordable
                          disableSpecificInteraction = !( (player.reservedCards.length < MAX_RESERVED_CARDS) || canAfford );
                      }
                  }
@@ -1838,17 +1880,16 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
             const cardPlayerArea = cardEl.closest('.player-area');
             const cardPlayerId = cardPlayerArea ? parseInt(cardPlayerArea.id.split('-')[2], 10) : -1;
 
-            if (isHumanActiveTurn) { // Only current player can truly interact for actions
+            if (isHumanActiveTurn) { 
                 if (cardPlayerId === currentPlayerIndex) {
-                    if (isSelectedElement) { // Can always deselect own selected card
+                    if (isSelectedElement) { 
                         disableSpecificInteraction = false;
-                    } else if (currentAction === 'SELECTING_GEMS') { // If selecting gems, can't select cards
+                    } else if (currentAction === 'SELECTING_GEMS') { 
                         disableSpecificInteraction = true;
                     } else { 
-                        // Can select any of own reserved cards to view/potentially buy
                         disableSpecificInteraction = false; 
                     }
-                } else { // Other players' reserved cards are not selectable for action
+                } else { 
                     disableSpecificInteraction = true;
                 }
             }
@@ -1872,24 +1913,36 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
         }
     }
 
-    function isGemClickable(gemType, isSelectedVisual) { 
-        if (bank[gemType] <= 0 || gemType === GOLD ) return false; // Removed: currentAction === 'SELECTING_CARD'
-        
+    function isGemClickable(gemType, isSelectedVisual) {
+        const player = players[currentPlayerIndex];
+        if (!player || player.type === 'ai' || isSimulationMode || isOverlayVisible() || gameTrulyFinished) return false;
+        if (currentAction === 'SELECTING_CARD' && selectedCard) return false; 
+
         if (isSelectedVisual) return true; 
 
-        const currentSelection = selectedGemTypes; 
-        const currentCount = currentSelection.length; 
-        const currentUniqueCount = new Set(currentSelection).size; 
-        
-        if (currentCount === 0) return bank[gemType] >= 1;
+        if (bank[gemType] <= 0 || gemType === GOLD) return false;
+
+        const currentSelection = selectedGemTypes;
+        const currentCount = currentSelection.length;
+        const currentUniqueCount = new Set(currentSelection).size;
+
+        if (currentCount === 0) {
+            return bank[gemType] >= 1;
+        }
         if (currentCount === 1) {
             const firstType = currentSelection[0];
-            if (gemType === firstType) return bank[gemType] >= MIN_GEMS_FOR_TAKE_TWO; 
-            return bank[gemType] >= 1; 
+            if (gemType === firstType) { 
+                return bank[gemType] >= MIN_GEMS_FOR_TAKE_TWO;
+            } else { 
+                return bank[gemType] >= 1;
+            }
         }
         if (currentCount === 2) {
-            if (currentUniqueCount === 1) return false; 
-            return !currentSelection.includes(gemType) && bank[gemType] >= 1; 
+            if (currentUniqueCount === 1) { 
+                return false; 
+            } else { 
+                return !currentSelection.includes(gemType) && bank[gemType] >= 1; 
+            }
         }
         return false; 
     }
