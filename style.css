@@ -89,7 +89,7 @@
     --highlight-selected-return: #e53935; /* For returning gems */
 
     --opacity-disabled: 0.4;
-    --opacity-affordable: 0.6;
+    --opacity-affordable: 0.6; /* This is the target for non-affordable cards */
 
     --player-color-1-bg: #e74c3c;
     --player-color-1-border: #c0392b;
@@ -292,7 +292,7 @@ h4 { margin: 8px 0 4px 0; font-size: 1em; color: var(--text-secondary); font-wei
 
 #ap-card-preview {
     width: 100%;
-    min-height: 196px;
+    min-height: 196px; /* Approx height of a scaled card */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -300,12 +300,12 @@ h4 { margin: 8px 0 4px 0; font-size: 1em; color: var(--text-secondary); font-wei
 }
 
 .ap-previewed-card {
-    transform: scale(1.4);
-    cursor: default !important;
-    box-shadow: var(--shadow-card-hover) !important;
-    transition: none !important;
+    transform: scale(1.4); /* Make previewed card larger */
+    cursor: default !important; /* Override pointer cursor */
+    box-shadow: var(--shadow-card-hover) !important; /* Give it a pronounced shadow */
+    transition: none !important; /* No transitions for the preview itself */
 }
-.ap-previewed-card:hover {
+.ap-previewed-card:hover { /* Prevent hover effects on the preview */
     transform: scale(1.4);
     box-shadow: var(--shadow-card-hover) !important;
 }
@@ -319,7 +319,7 @@ h4 { margin: 8px 0 4px 0; font-size: 1em; color: var(--text-secondary); font-wei
     border-radius: 8px;
     background-color: var(--bg-deck);
     width: 100%;
-    height: 100%;
+    height: 100%; /* Fill the preview area */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -331,11 +331,11 @@ h4 { margin: 8px 0 4px 0; font-size: 1em; color: var(--text-secondary); font-wei
     flex-direction: column;
     gap: 8px;
     width: 100%;
-    margin-top: auto;
+    margin-top: auto; /* Push buttons to the bottom if panel has extra space */
 }
 
 #ap-action-buttons .btn {
-    width: 100%;
+    width: 100%; /* Make buttons full width of action panel */
 }
 #ap-action-buttons button.action-possible {
     border: 2px solid var(--accent-color-confirm);
@@ -357,12 +357,13 @@ h4 { margin: 8px 0 4px 0; font-size: 1em; color: var(--text-secondary); font-wei
 .deck.empty:hover { background-color: var(--bg-deck-empty); }
 .deck.not-selectable { opacity: var(--opacity-disabled) !important; cursor: not-allowed !important; transform: none !important; background-color: var(--bg-deck) !important; }
 .visible-cards { display: flex; gap: 15px; flex-grow: 1; min-height: 145px; justify-content: flex-start; position: relative; }
+
 .card { width: 95px; height: 140px; border-radius: 8px; position: relative; background: var(--bg-card); cursor: pointer; box-shadow: var(--shadow-card); transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, outline 0.2s ease, opacity 0.3s ease; overflow: hidden; display: flex; flex-direction: column; border: 3px solid var(--border-tertiary); font-family: 'Roboto', sans-serif; box-sizing: border-box; user-select: none; flex-shrink: 0; }
 .card:hover:not(.not-selectable) { transform: translateY(-6px) scale(1.05); box-shadow: var(--shadow-card-hover); }
 .card.card-affordable-now:hover:not(.not-selectable):not(.selected) { box-shadow: var(--shadow-card-hover), 0 0 15px var(--accent-color-confirm); }
 .card.selected { transform: scale(1.1) translateY(-5px); outline: 4px solid var(--highlight-selected); outline-offset: 2px; animation: pulse_selected_card 1.2s infinite alternate; z-index: 10; }
 @keyframes pulse_selected_card { 0% { box-shadow: 0 8px 16px var(--shadow-secondary), 0 0 5px rgba(var(--accent-color-highlight-rgb), 0.5); } 100% { box-shadow: 0 10px 20px var(--shadow-secondary), 0 0 15px rgba(var(--accent-color-highlight-rgb), 0.8); } }
-.card.not-affordable { opacity: var(--opacity-affordable); filter: grayscale(30%) opacity(0.7); }
+.card.not-affordable { opacity: var(--opacity-affordable); filter: grayscale(30%); }
 .card.not-selectable { opacity: var(--opacity-disabled) !important; cursor: not-allowed !important; transform: none !important; box-shadow: var(--shadow-card) !important; }
 .card.empty-slot { background: repeating-linear-gradient( 45deg, var(--bg-deck-empty), var(--bg-deck-empty) 10px, var(--bg-deck) 10px, var(--bg-deck) 20px ); border: 2px dashed var(--border-secondary); box-shadow: none; cursor: default; color: var(--text-tertiary); display: flex; justify-content: center; align-items: center; opacity: 0.7; }
 .card-top-area { display: flex; justify-content: space-between; align-items: center; padding: 5px 7px; height: 30px; box-sizing: border-box; }
@@ -377,10 +378,56 @@ h4 { margin: 8px 0 4px 0; font-size: 1em; color: var(--text-secondary); font-wei
 .cost-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; vertical-align: middle; margin-right: 1px; border: 1px solid rgba(0,0,0,0.2); }
 .card-border-white { border-color: #c7c7c7; } .card-border-blue { border-color: var(--player-color-2-bg); } .card-border-green { border-color: var(--player-color-3-bg); } .card-border-red { border-color: var(--player-color-1-bg); } .card-border-black { border-color: #34495e; }
 .card.card-affordable-now:not(.selected):not(.not-selectable) { box-shadow: 0 0 0 2px var(--accent-color-confirm), var(--shadow-card); }
-.card.card-exiting { animation: cardExit 0.3s ease-out forwards; }
-.card.card-entering { animation: cardEnter 0.3s ease-out 0.15s forwards; opacity: 0; transform: scale(0.8) translateY(-10px); }
-@keyframes cardExit { 0% { opacity: 1; transform: scale(1) translateY(0); } 100% { opacity: 0; transform: scale(0.8) translateY(20px); } }
-@keyframes cardEnter { 0% { opacity: 0; transform: scale(0.8) translateY(-10px); } 100% { opacity: 1; transform: scale(1) translateY(0); } }
+
+/* Card Animations */
+.card.card-exiting {
+    animation: cardExit 0.3s ease-out forwards;
+}
+
+.card.card-entering {
+    /* No direct animation-name here. It's applied by more specific rules below. */
+    /* No direct opacity/transform here; keyframes control the start for the applied animation. */
+}
+
+/* Default entering animation for affordable or initially undetermined cards */
+.card.card-entering:not(.not-affordable) {
+    animation: cardEnter 0.3s ease-out 0.15s forwards;
+}
+
+/* Animation for entering cards that ARE already marked as not-affordable */
+.card.card-entering.not-affordable {
+    animation: cardEnterNotAffordable 0.3s ease-out 0.15s forwards;
+}
+
+@keyframes cardExit {
+    0% { opacity: 1; transform: scale(1) translateY(0); }
+    100% { opacity: 0; transform: scale(0.8) translateY(20px); }
+}
+
+@keyframes cardEnter { /* For cards that should enter fully opaque */
+    0% {
+        opacity: 0;
+        transform: scale(0.8) translateY(-10px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes cardEnterNotAffordable { /* For cards that should enter as not-affordable */
+    0% {
+        opacity: 0; /* Start transparent */
+        transform: scale(0.8) translateY(-10px);
+        filter: grayscale(30%); /* Apply filter from the start if desired */
+    }
+    100% {
+        opacity: var(--opacity-affordable); /* Animate TO the not-affordable opacity */
+        transform: scale(1) translateY(0);
+        filter: grayscale(30%); /* Ensure filter is present at the end */
+    }
+}
+
 
 /* Noble Styling */
 .noble {
@@ -519,13 +566,13 @@ h4 { margin: 8px 0 4px 0; font-size: 1em; color: var(--text-secondary); font-wei
     gap: 5px;
     margin-top: 5px;
     min-height: 75px;
-    background-color: var(--bg-reserved-area); /* Explicit background */
+    background-color: var(--bg-reserved-area);
     padding: 5px;
     border-radius: 4px;
     align-items: flex-start;
     flex-wrap: wrap;
-    position: relative; /* Added for potential z-index stacking if needed */
-    z-index: 0; /* Ensure it's part of the normal stacking context */
+    position: relative;
+    z-index: 0;
 }
 .reserved-card-small { width: 50px; height: 70px; border-radius: 4px; position: relative; background-color: var(--bg-tertiary); border: 1px solid var(--border-secondary); cursor: pointer; font-size: 0.7em; overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 2px; box-shadow: 0 1px 2px var(--shadow-primary); user-select: none; transition: transform 0.2s ease-out, box-shadow 0.2s ease-out, outline 0.2s ease, opacity 0.3s ease; }
 .reserved-cards-container .reserved-card-small:not(:first-child) { margin-left: -15px; }
@@ -543,7 +590,7 @@ h4 { margin: 8px 0 4px 0; font-size: 1em; color: var(--text-secondary); font-wei
 
 .hidden { display: none !important; }
 .overlay-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--shadow-overlay); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; visibility: hidden; transition: opacity 0.3s ease-out, visibility 0s 0.3s; user-select: none; }
-.overlay-modal:not(.hidden) { opacity: 1; visibility: visible; transition: opacity 0.3s ease-out, visibility 0s 0s; } /* Removed transform from overlay itself */
+.overlay-modal:not(.hidden) { opacity: 1; visibility: visible; transition: opacity 0.3s ease-out, visibility 0s 0s; }
 .modal-content { background-color: var(--bg-modal); padding: 30px; border-radius: 10px; text-align: center; max-width: 500px; width: 90%; transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.05s; color: var(--text-primary); border: 2px solid var(--border-panel); box-shadow: 0 0 0 1px var(--highlight-active), var(--shadow-modal); }
 .overlay-modal:not(.hidden) .modal-content { transform: scale(1); }
 .modal-content h2 { font-family: 'Cinzel Decorative', cursive; text-align: center; font-size: 1.8em; margin-bottom: 20px; color: var(--text-heading); }
@@ -700,8 +747,8 @@ h4 { margin: 8px 0 4px 0; font-size: 1em; color: var(--text-secondary); font-wei
     box-shadow: var(--shadow-tooltip);
     font-size: 0.9em;
     line-height: 1.4;
-    z-index: 2000; 
-    pointer-events: none; 
+    z-index: 2000;
+    pointer-events: none;
     opacity: 0;
     visibility: hidden; /* Start fully hidden */
     transition: opacity 0.2s ease-in-out, visibility 0s 0.2s; /* Delay visibility change */
@@ -726,4 +773,8 @@ h4 { margin: 8px 0 4px 0; font-size: 1em; color: var(--text-secondary); font-wei
     pointer-events: none;
     transition: transform 0.7s cubic-bezier(0.4, -0.3, 0.7, 1.3), opacity 0.7s ease-out;
     box-shadow: var(--shadow-gem-inner), var(--shadow-gem);
+}
+
+.no-transition {
+    transition: none !important;
 }
