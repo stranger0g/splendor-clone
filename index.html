@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Cinzel+Decorative:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 <body>
 
@@ -16,10 +17,7 @@
             <div class="setup-header">
                 <h1 class="game-title-main">Splendor: Legacy of Gems</h1>
                 <div id="api-key-indicator-container" title="API Key Status">
-                    <svg id="api-key-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="28px" height="28px">
-                        <path d="M0 0h24v24H0z" fill="none"/>
-                        <path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
-                    </svg>
+                    <i id="api-key-icon-fa" class="fas fa-key"></i>
                     <span id="api-key-tooltip-text" class="api-key-tooltip">Checking API Key...</span>
                 </div>
             </div>
@@ -75,7 +73,7 @@
 
             <div class="setup-footer">
                 <button id="start-game-btn" class="btn btn-confirm setup-start-button">
-                    <span class="start-icon" aria-hidden="true">▶</span> Start Game
+                    <i class="fas fa-play-circle" aria-hidden="true"></i><span class="btn-text-placeholder">Start Game</span>
                 </button>
             </div>
         </div>
@@ -99,11 +97,11 @@
                     <div id="log-messages" aria-live="polite" aria-atomic="false" aria-relevant="additions">
                     </div>
                      <button id="end-turn-early-btn" class="btn btn-secondary hidden">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="margin-right: 5px; vertical-align: middle;" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6zM5 6h7.4l.4 2H19v2h-3.6l-.4-2H7V6zm0 11v-2h7.6l.4 2H19v2h-5.6l-.4-2H5z"/></svg>
+                        <i class="fas fa-flag-checkered" aria-hidden="true"></i>
                         <span class="btn-text-placeholder">End Turn</span>
                     </button>
                      <button id="simulation-pause-btn" class="btn btn-secondary hidden">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="margin-right: 5px; vertical-align: middle;" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        <i class="fas fa-pause" aria-hidden="true"></i>
                         <span class="btn-text-placeholder">Pause Sim</span>
                     </button>
                      <span id="simulation-status" class="hidden" aria-live="polite"></span>
@@ -154,7 +152,7 @@
                         </div>
                         <div id="ap-action-buttons">
                             <button id="ap-cancel-btn" class="btn btn-warning hidden">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="margin-right: 5px; vertical-align: middle;" aria-hidden="true"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                                <i class="fas fa-times" aria-hidden="true"></i>
                                 <span class="btn-text-placeholder">Cancel</span>
                             </button>
                         </div>
