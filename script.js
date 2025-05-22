@@ -1,3 +1,11 @@
+// Helper for SVG icons
+const SVG_ICONS = {
+    pause: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>',
+    play: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M8 5v14l11-7z"/></svg>',
+    flag: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6zM5 6h7.4l.4 2H19v2h-3.6l-.4-2H7V6zm0 11v-2h7.6l.4 2H19v2h-5.6l-.4-2H5z"/></svg>',
+    cancel: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>'
+};
+
 document.addEventListener('DOMContentLoaded', () => {
 
     const setupScreen = document.getElementById('setup-screen');
@@ -21,10 +29,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const simulationPauseBtn = document.getElementById('simulation-pause-btn');
     const simulationStatusSpan = document.getElementById('simulation-status');
     const gemBankContainer = document.getElementById('gem-bank');
-    const selectionInfoDiv = document.getElementById('selection-info');
-    const selectedGemsDisplay = document.getElementById('selected-gems-display');
-    const selectedCardDisplay = document.getElementById('selected-card-display');
-    const dynamicActionButtonsContainer = document.getElementById('dynamic-action-buttons');
+    
+    const apSelectionText = document.getElementById('ap-selection-text');
+    const apSelectedGemsDisplay = document.getElementById('ap-selected-gems-display');
+    const apCardPreview = document.getElementById('ap-card-preview');
+    const apActionButtons = document.getElementById('ap-action-buttons');
+    const apCancelBtn = document.getElementById('ap-cancel-btn'); 
+
     const deckCounts = { 1: document.getElementById('deck-1-count'), 2: document.getElementById('deck-2-count'), 3: document.getElementById('deck-3-count') };
     const visibleCardsContainers = { 1: document.getElementById('visible-cards-1'), 2: document.getElementById('visible-cards-2'), 3: document.getElementById('visible-cards-3') };
     const deckElements = { 1: document.getElementById('deck-1'), 2: document.getElementById('deck-2'), 3: document.getElementById('deck-3') };
@@ -143,6 +154,12 @@ document.addEventListener('DOMContentLoaded', () => {
         simulationTurnDelayMs = parseInt(simulationSpeedInput.value, 10) || 200;
         gameSettings.playerCount = playerData.length;
 
+        const noblesAreaH2 = document.querySelector('#nobles-area h2');
+        if (noblesAreaH2) noblesAreaH2.textContent = "Available Patrons";
+        const bankAreaH2 = document.querySelector('#bank-area h2');
+        if (bankAreaH2) bankAreaH2.textContent = "Treasury";
+
+
         playerData.forEach((pData, i) => {
             players.push({
                 id: i, name: pData.name, colorTheme: pData.colorTheme, type: pData.type,
@@ -183,12 +200,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const numNobles = gameSettings.playerCount + 1;
         availableNobles = shuffleArray([...ALL_NOBLES]).slice(0, numNobles);
-        console.log("Nobles initialized in initGame():", JSON.parse(JSON.stringify(availableNobles)));
 
         renderBank();
         renderCards();
         renderNobles();
         renderPlayers();
+        renderSelectionInfo(); 
 
         updateLog(`Game started. Players: ${players.map(p => `${p.name} (${p.type.toUpperCase()})`).join(', ')}.`);
         if(isSimulationMode) {
@@ -196,8 +213,16 @@ document.addEventListener('DOMContentLoaded', () => {
              gameSettings.timerMinutes = 0; turnDuration = 0; renderTimer();
              if(simulationPauseBtn) simulationPauseBtn.classList.remove('hidden');
              if(simulationStatusSpan) simulationStatusSpan.classList.remove('hidden');
-             if(simulationPauseBtn) simulationPauseBtn.textContent = "Pause Sim";
-             if(simulationStatusSpan) simulationStatusSpan.textContent = "Running";
+             const simBtnIcon = simulationPauseBtn.querySelector('svg');
+             const simBtnText = simulationPauseBtn.querySelector('.btn-text-placeholder');
+             if(isSimulationPaused) {
+                 if (simBtnIcon) simBtnIcon.outerHTML = SVG_ICONS.play;
+                 if (simBtnText) simBtnText.textContent = "Resume Sim";
+             } else {
+                 if (simBtnIcon) simBtnIcon.outerHTML = SVG_ICONS.pause;
+                 if (simBtnText) simBtnText.textContent = "Pause Sim";
+             }
+             if(simulationStatusSpan) simulationStatusSpan.textContent = isSimulationPaused ? "Paused" : "Running";
              if(endTurnEarlyBtn) endTurnEarlyBtn.classList.add('hidden');
         } else {
             if(simulationPauseBtn) simulationPauseBtn.classList.add('hidden');
@@ -380,9 +405,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         Object.values(deckElements).forEach(deckEl => {
-            if (deckEl) deckEl.addEventListener('click', () => handleDeckClick(parseInt(deckEl.id.split('-')[1])));
+            if (deckEl) {
+                deckEl.addEventListener('click', (event) => {
+                    const player = players[currentPlayerIndex];
+                    if (!player || player.type === 'ai' || isSimulationMode || isOverlayVisible() || gameTrulyFinished) return;
+                    
+                    const targetDeckEl = event.currentTarget;
+                    const level = parseInt(targetDeckEl.id.split('-')[1]);
+
+                    if (targetDeckEl.classList.contains('not-selectable') && !(selectedCard && selectedCard.element === targetDeckEl)) {
+                        return;
+                    }
+                    if (targetDeckEl.classList.contains('empty') && !(selectedCard && selectedCard.element === targetDeckEl)) return;
+
+
+                    handleDeckClick(level);
+                });
+            }
         });
-        if(endTurnEarlyBtn) endTurnEarlyBtn.addEventListener('click', handleEndTurnEarly);
+
+        if(endTurnEarlyBtn) {
+            const textPlaceholder = endTurnEarlyBtn.querySelector('.btn-text-placeholder');
+            if (textPlaceholder && textPlaceholder.textContent.trim() === "") { 
+                 textPlaceholder.textContent = "End Turn";
+            }
+            endTurnEarlyBtn.addEventListener('click', handleEndTurnEarly);
+        }
         if(simulationPauseBtn) simulationPauseBtn.addEventListener('click', toggleSimulationPause);
         if(playAgainBtn) {
             playAgainBtn.addEventListener('click', () => {
@@ -407,6 +455,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
+        if (apCancelBtn) {
+            apCancelBtn.addEventListener('click', clearActionState);
+        }
     }
 
     function renderBank() {
@@ -418,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const gemEl = createGemElement(gemType, count, true);
                 gemEl.dataset.gemType = gemType;
                 gemEl.title = `${count} ${gemType} available`;
-                gemEl.removeEventListener('click', handleGemClickWrapper);
+                gemEl.removeEventListener('click', handleGemClickWrapper); 
                 gemEl.addEventListener('click', handleGemClickWrapper);
                 if (gemType === GOLD || count <= 0) {
                      gemEl.classList.add('not-selectable');
@@ -441,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (cardData) {
                     cardEl.dataset.cardId = cardData.id;
                     cardEl.dataset.level = level;
-                    cardEl.removeEventListener('click', handleVisibleCardClickWrapper);
+                    cardEl.removeEventListener('click', handleVisibleCardClickWrapper); 
                     cardEl.addEventListener('click', handleVisibleCardClickWrapper);
                 }
                 container.appendChild(cardEl);
@@ -455,13 +506,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderNobles() {
         if (!noblesContainer) return;
         noblesContainer.innerHTML = '';
-        console.log("Rendering nobles. Available nobles:", JSON.parse(JSON.stringify(availableNobles)));
         if (availableNobles && availableNobles.length > 0) {
             availableNobles.forEach(nobleData => {
                 noblesContainer.appendChild(createNobleElement(nobleData));
             });
         } else {
-            noblesContainer.innerHTML = '<p style="color: var(--text-tertiary); font-style: italic;">No nobles available.</p>';
+            noblesContainer.innerHTML = '<p style="color: var(--text-tertiary); font-style: italic;">No patrons available.</p>';
         }
     }
 
@@ -480,8 +530,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const player = players.find(p => p.id === playerId);
         const playerAreaEl = document.getElementById(`player-area-${playerId}`);
         if (player && playerAreaEl) {
-            const tempDiv = createPlayerAreaElement(player);
+            const tempDiv = createPlayerAreaElement(player); 
             playerAreaEl.innerHTML = tempDiv.innerHTML;
+
+            playerAreaEl.querySelectorAll('.reserved-card-small').forEach(rc => {
+                rc.removeEventListener('click', handleReservedCardClickWrapper); 
+                rc.addEventListener('click', handleReservedCardClickWrapper);
+            });
+
              if (player.type === 'ai') {
                  const badge = document.createElement('span');
                  badge.classList.add('ai-badge');
@@ -500,6 +556,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderTimer() {
         if (!timerDisplay) return;
+        timerDisplay.classList.remove('active-timer-pulse'); 
+
         if (isSimulationMode || gameSettings.timerMinutes <= 0 || turnDuration <= 0) {
             timerDisplay.textContent = "Off";
             timerDisplay.classList.remove('timer-low');
@@ -512,117 +570,126 @@ document.addEventListener('DOMContentLoaded', () => {
              if(currentPlayer && currentPlayer.type === 'ai') stopTimer();
              return;
          }
+        
+        if (turnTimerInterval) { 
+            timerDisplay.classList.add('active-timer-pulse');
+        }
+
         const minutes = Math.floor(turnTimeRemaining / 60);
         const seconds = Math.floor(turnTimeRemaining % 60);
         timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        timerDisplay.classList.toggle('timer-low', turnTimeRemaining <= TIMER_LOW_THRESHOLD && turnTimeRemaining > 0);
-        if (turnTimeRemaining <= 0) {
+        
+        const isLow = turnTimeRemaining <= TIMER_LOW_THRESHOLD && turnTimeRemaining > 0;
+        timerDisplay.classList.toggle('timer-low', isLow);
+        if (isLow) { 
+            timerDisplay.classList.remove('active-timer-pulse');
+        }
+        
+        if (turnTimeRemaining <= 0 && !isLow) { 
             timerDisplay.classList.remove('timer-low');
         }
     }
 
     function renderSelectionInfo() {
-        if (!dynamicActionButtonsContainer || !selectionInfoDiv || !selectedCardDisplay || !selectedGemsDisplay) return;
-        dynamicActionButtonsContainer.innerHTML = '';
-        const existingPreview = selectionInfoDiv.querySelector('.card-preview-container');
-        if (existingPreview) existingPreview.remove();
-        selectionInfoDiv.querySelectorAll('.selection-text').forEach(p => { if(p) p.style.display = 'block'; });
-        selectedCardDisplay.textContent = 'None';
-        selectedGemsDisplay.textContent = 'None';
-
+        if (!apSelectionText || !apSelectedGemsDisplay || !apCardPreview || !apActionButtons || !apCancelBtn) {
+            return;
+        }
+    
+        apSelectedGemsDisplay.innerHTML = '';
+        apCardPreview.innerHTML = '';
+    
+        const dynamicButtons = apActionButtons.querySelectorAll('button:not(#ap-cancel-btn)');
+        dynamicButtons.forEach(btn => btn.remove());
+    
+        apCancelBtn.classList.toggle('hidden', !currentAction);
+    
         if (currentAction === 'SELECTING_GEMS' && selectedGemTypes.length > 0) {
-            selectedGemsDisplay.innerHTML = '';
+            apSelectionText.textContent = 'Selected Gems:';
             selectedGemTypes.forEach(type => {
-                selectedGemsDisplay.appendChild(createGemElement(type, 1, false));
+                const gemEl = createGemElement(type, 1, false); 
+                apSelectedGemsDisplay.appendChild(gemEl);
             });
-
+    
             const btn = document.createElement('button');
             btn.classList.add('btn');
             btn.textContent = 'Confirm Take Tokens';
             btn.onclick = performTakeGems;
             const isValid = validateTakeGemsSelection();
             btn.disabled = !isValid;
-            dynamicActionButtonsContainer.appendChild(btn);
-            if (isValid) btn.classList.add('action-possible', 'btn-primary');
-            else btn.classList.add('btn-secondary');
-            selectedCardDisplay.textContent = 'None';
-
+            if (isValid) btn.classList.add('action-possible', 'btn-confirm'); else btn.classList.add('btn-secondary');
+            apActionButtons.insertBefore(btn, apCancelBtn); 
+    
         } else if (currentAction === 'SELECTING_CARD' && selectedCard) {
-             let cardData = null;
-             if(selectedCard.id) cardData = getCardById(selectedCard.id);
-             if (!cardData && selectedCard.type === 'deck') cardData = getDeckCardPlaceholder(selectedCard.level);
+            apSelectionText.textContent = selectedCard.type === 'deck' ? 'Selected Deck:' : 'Selected Card:';
+            let cardData = null;
+            if (selectedCard.id) cardData = getCardById(selectedCard.id); 
+            if (!cardData && selectedCard.type === 'deck') cardData = getDeckCardPlaceholder(selectedCard.level);
+            
+            if (selectedCard.type === 'reserved' && selectedCard.ownerId === currentPlayerIndex) {
+                const cPlayer = players[currentPlayerIndex];
+                cardData = cPlayer.reservedCards.find(c => c.id === selectedCard.id);
+            }
 
-             let cardText = 'Invalid Selection';
 
-             if (cardData) {
-                 if ((selectedCard.type === 'visible' || selectedCard.type === 'reserved') && cardData.id) {
-                     selectionInfoDiv.querySelectorAll('.selection-text').forEach(p => { if(p) p.style.display = 'none'; });
-                     const previewContainer = document.createElement('div');
-                     previewContainer.classList.add('card-preview-container');
-                     const previewCardEl = createCardElement(cardData, cardData.level);
-                     previewCardEl.classList.add('card-preview');
-                     const clonedPreview = previewCardEl.cloneNode(true);
-                     previewContainer.appendChild(clonedPreview);
-                     selectionInfoDiv.insertBefore(previewContainer, dynamicActionButtonsContainer);
-                      selectedCardDisplay.textContent = '';
-                      selectedGemsDisplay.textContent = 'None';
-
-                 }
-                 else if (selectedCard.type === 'deck') {
-                     cardText = `Deck L${cardData.level}`;
-                      selectedCardDisplay.textContent = cardText;
-                      selectedGemsDisplay.textContent = 'None';
-                 } else {
-                      selectedCardDisplay.textContent = 'Unknown Card';
-                 }
-
-                 const activePlayer = players[currentPlayerIndex];
-                 const isHumanTurn = activePlayer && activePlayer.type === 'human' && !isSimulationMode && !gameTrulyFinished && !isOverlayVisible();
-
-                 if (isHumanTurn) {
-                      const canReserveCheck = activePlayer.reservedCards.length < MAX_RESERVED_CARDS;
-                      const { canAfford, goldNeeded } = (selectedCard.type === 'visible' || selectedCard.type === 'reserved') && cardData.id
-                          ? canAffordCard(activePlayer, cardData)
-                          : { canAfford: false, goldNeeded: 0 };
-
-                      if (((selectedCard.type === 'visible') || (selectedCard.type === 'reserved' && selectedCard.ownerId === currentPlayerIndex)) && cardData.id) {
-                          const purchaseBtn = document.createElement('button');
-                          purchaseBtn.classList.add('btn');
-                          purchaseBtn.textContent = 'Purchase Card';
-                          purchaseBtn.onclick = performPurchaseCard;
-                          purchaseBtn.disabled = !canAfford;
-                          if (canAfford) purchaseBtn.classList.add('action-possible', 'btn-primary');
-                          else {
-                            purchaseBtn.title = `Cannot afford (need ${goldNeeded} more gold or equivalent gems)`;
-                            purchaseBtn.classList.add('btn-secondary');
-                          }
-                          dynamicActionButtonsContainer.appendChild(purchaseBtn);
-                      }
-
-                      if (selectedCard.type === 'visible' || selectedCard.type === 'deck') {
-                          const reserveBtn = document.createElement('button');
-                          reserveBtn.classList.add('btn');
-                          reserveBtn.textContent = 'Reserve Card';
-                          reserveBtn.onclick = performReserveCard;
-                          const isDeckEmpty = (selectedCard.type === 'deck' && decks[selectedCard.level].length === 0);
-                          const disableReserve = !canReserveCheck || isDeckEmpty;
-                          reserveBtn.disabled = disableReserve;
-                          if (!disableReserve) reserveBtn.classList.add('action-possible', 'btn-secondary');
-                          else reserveBtn.classList.add('btn-secondary');
-
-                          if (!canReserveCheck) reserveBtn.title = "Reservation limit reached (3)";
-                          if (isDeckEmpty) reserveBtn.title = `Level ${selectedCard.level} deck is empty`;
-                          dynamicActionButtonsContainer.appendChild(reserveBtn);
-                      }
-                 }
-             } else {
-                  selectedCardDisplay.textContent = cardText;
-             }
+            if (cardData) {
+                if (selectedCard.type === 'deck') {
+                    const deckPreviewEl = document.createElement('div');
+                    deckPreviewEl.classList.add('ap-deck-preview');
+                    deckPreviewEl.textContent = `Deck L${cardData.level}`;
+                    apCardPreview.appendChild(deckPreviewEl);
+                } else if (cardData.id && cardData.color !== 'deck') { 
+                    const previewCardEl = createCardElement(cardData, cardData.level);
+                    previewCardEl.classList.add('ap-previewed-card'); 
+                    apCardPreview.appendChild(previewCardEl);
+                } else {
+                    apSelectionText.textContent = 'Invalid Card Data';
+                }
+    
+                const activePlayer = players[currentPlayerIndex];
+                const isHumanTurn = activePlayer && activePlayer.type === 'human' && !isSimulationMode && !gameTrulyFinished && !isOverlayVisible();
+    
+                if (isHumanTurn) {
+                    const canReserveCheck = activePlayer.reservedCards.length < MAX_RESERVED_CARDS;
+                    const { canAfford, goldNeeded } = (selectedCard.type === 'visible' || selectedCard.type === 'reserved') && cardData && cardData.id && cardData.color !== 'deck'
+                        ? canAffordCard(activePlayer, cardData)
+                        : { canAfford: false, goldNeeded: 0 };
+    
+                    // Only show purchase button if it's the current player's reserved card or a visible card
+                    if (((selectedCard.type === 'visible') || (selectedCard.type === 'reserved' && selectedCard.ownerId === currentPlayerIndex)) && cardData && cardData.id && cardData.color !== 'deck') {
+                        const purchaseBtn = document.createElement('button');
+                        purchaseBtn.classList.add('btn', 'btn-primary');
+                        purchaseBtn.textContent = 'Purchase Card';
+                        purchaseBtn.onclick = performPurchaseCard;
+                        purchaseBtn.disabled = !canAfford;
+                        if (canAfford) purchaseBtn.classList.add('action-possible');
+                        else purchaseBtn.title = `Cannot afford (need ${goldNeeded} more gold or equivalent gems)`;
+                        apActionButtons.insertBefore(purchaseBtn, apCancelBtn);
+                    }
+    
+                    // Only show reserve button for visible cards or decks
+                    if (selectedCard.type === 'visible' || selectedCard.type === 'deck') {
+                        const reserveBtn = document.createElement('button');
+                        reserveBtn.classList.add('btn', 'btn-secondary');
+                        reserveBtn.textContent = 'Reserve Card';
+                        reserveBtn.onclick = performReserveCard;
+                        const isDeckEmpty = (selectedCard.type === 'deck' && decks[selectedCard.level].length === 0);
+                        const disableReserve = !canReserveCheck || isDeckEmpty;
+                        reserveBtn.disabled = disableReserve;
+                        if (!disableReserve) reserveBtn.classList.add('action-possible');
+    
+                        if (!canReserveCheck) reserveBtn.title = "Reservation limit reached (3)";
+                        if (isDeckEmpty) reserveBtn.title = `Level ${selectedCard.level} deck is empty`;
+                        apActionButtons.insertBefore(reserveBtn, apCancelBtn);
+                    }
+                }
+            } else {
+                apSelectionText.textContent = 'Invalid Card Selection';
+            }
         } else {
-            selectedCardDisplay.textContent = 'None';
-            selectedGemsDisplay.textContent = 'None';
+            apSelectionText.textContent = 'Select gems or a card.';
         }
     }
+
 
      function renderDeckCount(level) {
         if (deckCounts[level] && deckElements[level]) {
@@ -641,9 +708,7 @@ document.addEventListener('DOMContentLoaded', () => {
             countEl.classList.add('gem-count');
             countEl.textContent = count;
             gemEl.appendChild(countEl);
-        } else {
-            gemEl.style.width = '20px';
-            gemEl.style.height = '20px';
+        } else { 
             gemEl.style.cursor = 'default';
         }
         return gemEl;
@@ -694,7 +759,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function createSmallReservedCardElement(cardData) {
         const cardEl = document.createElement('div');
         cardEl.classList.add('reserved-card-small', `card-border-${cardData.color}`);
-        cardEl.dataset.cardId = cardData.id;
+        cardEl.dataset.cardId = cardData.id; 
         cardEl.title = formatCardCostForTitle(cardData);
         const topArea = document.createElement('div');
         topArea.classList.add('card-top-area');
@@ -724,59 +789,63 @@ document.addEventListener('DOMContentLoaded', () => {
         return cardEl;
     }
 
+    function formatNobleInfoForTitle(nobleData) {
+        let title = `${nobleData.vp} VP - Requires: `;
+        const reqParts = [];
+        GEM_TYPES.forEach(gemType => {
+            const reqCount = nobleData.requirements[gemType];
+            if (reqCount > 0) {
+                reqParts.push(`${reqCount} ${gemType}`);
+            }
+        });
+        title += reqParts.join(', ') || 'nothing';
+        return title;
+    }
+    
     function createNobleElement(nobleData) {
         const nobleEl = document.createElement('div');
         nobleEl.classList.add('noble');
         nobleEl.dataset.nobleId = nobleData.id;
-
-        const reqString = GEM_TYPES
-            .map(type => ({ type, count: nobleData.requirements[type] || 0 }))
-            .filter(item => item.count > 0)
-            .map(item => `${item.count} ${item.type}`)
-            .join(', ');
-        nobleEl.title = `${nobleData.vp} VP - Requires: ${reqString}`;
-
-        // VP Banner
+        nobleEl.title = formatNobleInfoForTitle(nobleData);
+    
         const vpBannerDiv = document.createElement('div');
         vpBannerDiv.classList.add('noble-vp-banner');
-
+    
         const vpValueSpan = document.createElement('span');
         vpValueSpan.classList.add('noble-vp-value');
         vpValueSpan.textContent = nobleData.vp;
         vpBannerDiv.appendChild(vpValueSpan);
-
+    
         const vpTextSpan = document.createElement('span');
         vpTextSpan.classList.add('noble-vp-text');
         vpTextSpan.textContent = 'VP';
         vpBannerDiv.appendChild(vpTextSpan);
-
+    
         nobleEl.appendChild(vpBannerDiv);
-
-        // Artwork Area (Placeholder)
+    
         const artworkAreaDiv = document.createElement('div');
         artworkAreaDiv.classList.add('noble-artwork-area');
-        // Future: Add SVG or themed content here
         nobleEl.appendChild(artworkAreaDiv);
-
-        // Requirements Footer
+    
         const requirementsFooterDiv = document.createElement('div');
         requirementsFooterDiv.classList.add('noble-requirements-footer');
+    
         GEM_TYPES.forEach(gemType => {
             const req = nobleData.requirements[gemType];
             if (req > 0) {
                 const reqItem = document.createElement('div');
                 reqItem.classList.add('req-item');
-                reqItem.textContent = req; // Number first
-
+                reqItem.textContent = req; 
+    
                 const reqGem = document.createElement('span');
                 reqGem.classList.add('req-gem', `gem-${gemType}`);
-                reqItem.appendChild(reqGem); // Gem icon after number
-
+                reqItem.appendChild(reqGem); 
+    
                 requirementsFooterDiv.appendChild(reqItem);
             }
         });
         nobleEl.appendChild(requirementsFooterDiv);
-
+    
         return nobleEl;
     }
 
@@ -852,6 +921,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (player.reservedCards.length > 0) {
             player.reservedCards.forEach(cardData => {
                 const reservedCardEl = createSmallReservedCardElement(cardData);
+                reservedCardEl.removeEventListener('click', handleReservedCardClickWrapper); 
+                reservedCardEl.addEventListener('click', handleReservedCardClickWrapper);
                 reservedContainer.appendChild(reservedCardEl);
             });
         } else {
@@ -866,7 +937,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (player.nobles.length > 0) {
              player.nobles.forEach(nobleData => {
                 const nobleEl = createNobleElement(nobleData);
-                nobleEl.style.transform = 'scale(0.7)'; // Keep player's acquired nobles smaller as they stack
+                nobleEl.style.transform = 'scale(0.7)'; 
                 playerNoblesContainer.appendChild(nobleEl);
              });
         } else {
@@ -892,34 +963,44 @@ document.addEventListener('DOMContentLoaded', () => {
         const player = players[currentPlayerIndex];
          if (!player || player.type === 'ai' || isSimulationMode || isOverlayVisible() || gameTrulyFinished) return;
         const gemEl = event.currentTarget;
-        if (gemEl.classList.contains('not-selectable')) return;
+        if (gemEl.classList.contains('not-selectable') && !gemEl.classList.contains('selected')) return;
+        
         const gemType = gemEl.dataset.gemType;
          if (!isGemClickable(gemType, gemEl.classList.contains('selected'))) {
-            console.log(`Click ignored on ${gemType}: Not clickable in current state.`);
             return;
          }
         handleGemClick(gemType, gemEl);
     }
 
     function handleVisibleCardClickWrapper(event) {
-         const player = players[currentPlayerIndex];
-         if (!player || player.type === 'ai' || isSimulationMode || isOverlayVisible() || gameTrulyFinished) return;
+        const player = players[currentPlayerIndex];
+        if (!player || player.type === 'ai' || isSimulationMode || isOverlayVisible() || gameTrulyFinished) return;
+       
         const cardEl = event.currentTarget;
-        if (cardEl.classList.contains('not-selectable') || cardEl.classList.contains('empty-slot')) return;
+        if (cardEl.classList.contains('empty-slot')) return;
+        if (cardEl.classList.contains('not-selectable') && !(selectedCard && selectedCard.element === cardEl)) return;
+
         const cardId = cardEl.dataset.cardId;
         const level = parseInt(cardEl.dataset.level, 10);
+
         if (cardId && !isNaN(level)) {
-            handleCardClick('visible', level, cardId, cardEl);
+           handleCardClick('visible', level, cardId, cardEl);
         } else {
-            console.error("Visible card click error: Missing cardId or level", cardEl.dataset);
+           console.error("Visible card click error: Missing cardId or level", cardEl.dataset);
         }
     }
 
     function handleReservedCardClickWrapper(event) {
+        const player = players[currentPlayerIndex];
+        if (!player || player.type === 'ai' || isSimulationMode || isOverlayVisible() || gameTrulyFinished) return;
+
         const cardEl = event.currentTarget;
-        if (cardEl.classList.contains('not-selectable') && !selectedCard) {
+        // Allow clicking if it's already selected OR if it's not marked 'not-selectable'
+        // This means, if it's selectable, OR if it's already selected, proceed.
+        if (cardEl.classList.contains('not-selectable') && !(selectedCard && selectedCard.element === cardEl)) { 
             return;
         }
+
         const cardId = cardEl.dataset.cardId;
         if (cardId) {
             handleReservedCardClick(cardId, cardEl);
@@ -928,47 +1009,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-     function handleGemClick(gemType, clickedGemEl) {
+    function handleGemClick(gemType, clickedGemEl) {
         if (gemType === GOLD) return;
-        if (currentAction === 'SELECTING_CARD') clearCardSelectionState();
-        if (currentAction !== 'SELECTING_GEMS') currentAction = 'SELECTING_GEMS';
+
+        if (currentAction === 'SELECTING_CARD' && selectedCard) {
+            clearCardSelectionState(); 
+        }
+        currentAction = 'SELECTING_GEMS';
 
         const isSelectedVisual = clickedGemEl.classList.contains('selected');
-        const currentSelection = [...selectedGemTypes];
-        const currentCount = currentSelection.length;
-        const currentUniqueCount = new Set(currentSelection).size;
-
-        if (isSelectedVisual) {
-            const isTryingToAddSecondIdentical = (currentCount === 1 && currentSelection[0] === gemType && bank[gemType] >= MIN_GEMS_FOR_TAKE_TWO);
-            const isTryingToDeselectPair = (currentCount === 2 && currentUniqueCount === 1 && currentSelection[0] === gemType);
-            if (isTryingToAddSecondIdentical) {
+        
+        if (isSelectedVisual) { 
+            const deselectedType = clickedGemEl.dataset.gemType;
+            selectedGemTypes = selectedGemTypes.filter(g => g !== deselectedType);
+            gemBankContainer.querySelectorAll(`.gem[data-gem-type='${deselectedType}'].selected`).forEach(el => {
+                el.classList.remove('selected');
+            });
+            if (selectedGemTypes.length === 0) currentAction = null;
+        } else { 
+            if (selectedGemTypes.length === 0) {
                 selectedGemTypes.push(gemType);
-                const otherGemEl = findNonSelectedBankGemElement(gemType, clickedGemEl);
-                if (otherGemEl) otherGemEl.classList.add('selected');
-                else gemBankContainer.querySelectorAll(`.gem[data-gem-type='${gemType}']`).forEach(el => el.classList.add('selected'));
-            } else if (isTryingToDeselectPair) {
-                 selectedGemTypes = [];
-                  gemBankContainer.querySelectorAll(`.gem[data-gem-type='${gemType}'].selected`).forEach(el => el.classList.remove('selected'));
-                  currentAction = null;
-            } else {
-                const indexToRemove = selectedGemTypes.lastIndexOf(gemType);
-                if (indexToRemove > -1) selectedGemTypes.splice(indexToRemove, 1);
-                clickedGemEl.classList.remove('selected');
-                if (selectedGemTypes.length === 0) currentAction = null;
-            }
-        } else {
-            let canAdd = false;
-            if (currentCount === 0 && bank[gemType] >= 1) canAdd = true;
-            else if (currentCount === 1) {
-                const firstType = currentSelection[0];
-                if (gemType !== firstType && bank[gemType] >= 1) canAdd = true;
-            } else if (currentCount === 2 && currentUniqueCount === 2 && !currentSelection.includes(gemType) && bank[gemType] >= 1) canAdd = true;
-            if (canAdd) {
-                 selectedGemTypes.push(gemType);
-                 clickedGemEl.classList.add('selected');
-            } else {
-                 clickedGemEl.style.animation = 'shake 0.5s';
-                 setTimeout(() => { clickedGemEl.style.animation = ''; }, 500);
+                clickedGemEl.classList.add('selected');
+            } else if (selectedGemTypes.length === 1) {
+                if (selectedGemTypes[0] === gemType && bank[gemType] >= MIN_GEMS_FOR_TAKE_TWO) {
+                    selectedGemTypes.push(gemType);
+                    clickedGemEl.classList.add('selected'); 
+                } else if (selectedGemTypes[0] !== gemType && bank[gemType] >= 1) {
+                    selectedGemTypes.push(gemType);
+                    clickedGemEl.classList.add('selected');
+                }
+            } else if (selectedGemTypes.length === 2) {
+                if (new Set(selectedGemTypes).size === 2 && !selectedGemTypes.includes(gemType) && bank[gemType] >= 1) {
+                    selectedGemTypes.push(gemType);
+                    clickedGemEl.classList.add('selected');
+                }
             }
         }
         renderSelectionInfo();
@@ -976,53 +1050,103 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleCardClick(type, level, cardId, cardEl) {
-        if (selectedCard && selectedCard.id === cardId && selectedCard.type === type) { clearCardSelectionState(); return; }
-        if (currentAction === 'SELECTING_GEMS') clearGemSelectionState();
-        else if (currentAction === 'SELECTING_CARD' && selectedCard && selectedCard.element !== cardEl) {
-             if (selectedCard.element) selectedCard.element.classList.remove('selected');
+        if (currentAction === 'SELECTING_GEMS' && selectedGemTypes.length > 0) {
+            clearGemSelectionState(); 
         }
-        currentAction = 'SELECTING_CARD';
+        currentAction = 'SELECTING_CARD'; 
+
+        if (selectedCard && selectedCard.element === cardEl) {
+            clearActionState(); // Deselect if clicking the same card
+            return;
+        }
+            
+        if (selectedCard && selectedCard.element) { // Deselect previous card
+            selectedCard.element.classList.remove('selected');
+        }
+        
         selectedCard = { type, level, id: cardId, element: cardEl };
         cardEl.classList.add('selected');
-        renderSelectionInfo();
-        updateClickableState();
+        
+        renderSelectionInfo(); 
+        updateClickableState(); 
     }
-
+    
     function handleDeckClick(level) {
         const deckEl = deckElements[level];
-        if (deckEl.classList.contains('empty') || deckEl.classList.contains('not-selectable')) return;
-        if (selectedCard && selectedCard.element === deckEl) { clearCardSelectionState(); return; }
-        const player = players[currentPlayerIndex];
-        if (!player || player.reservedCards.length >= MAX_RESERVED_CARDS) { updateLog("Reserve limit reached (3). Cannot reserve from deck."); return; }
-        const deckId = `deck-${level}`;
-        if (currentAction === 'SELECTING_GEMS') clearGemSelectionState();
-        else if (currentAction === 'SELECTING_CARD' && selectedCard && selectedCard.element !== deckEl) {
-             if (selectedCard.element) selectedCard.element.classList.remove('selected');
+
+        if (currentAction === 'SELECTING_GEMS' && selectedGemTypes.length > 0) {
+            clearGemSelectionState();
         }
         currentAction = 'SELECTING_CARD';
+    
+        if (selectedCard && selectedCard.element === deckEl) {
+            clearActionState();
+            return;
+        }
+        
+        const player = players[currentPlayerIndex];
+        if (!player) return;
+
+        if (player.reservedCards.length >= MAX_RESERVED_CARDS && !(selectedCard && selectedCard.element === deckEl) ) {
+            let purchasePossibleFromCurrent = false;
+            if (selectedCard && selectedCard.type !== 'deck') {
+                const currentCardData = getCardById(selectedCard.id);
+                if(currentCardData) {
+                    purchasePossibleFromCurrent = canAffordCard(player, currentCardData).canAfford;
+                }
+            }
+            if (!purchasePossibleFromCurrent) {
+                updateLog("Reserve limit reached (3). Cannot select deck for reservation unless purchasing current card first.");
+            }
+             return; 
+        }
+    
+        if (selectedCard && selectedCard.element) {
+            selectedCard.element.classList.remove('selected');
+        }
+        
+        const deckId = `deck-${level}`;
         selectedCard = { type: 'deck', level, id: deckId, element: deckEl };
         deckEl.classList.add('selected');
+    
         renderSelectionInfo();
         updateClickableState();
     }
-
+    
     function handleReservedCardClick(cardId, cardEl) {
+        if (currentAction === 'SELECTING_GEMS' && selectedGemTypes.length > 0) {
+            clearGemSelectionState();
+        }
+        currentAction = 'SELECTING_CARD';
+
+        if (selectedCard && selectedCard.element === cardEl) {
+            clearActionState();
+            return;
+        }
+
         const playerArea = cardEl.closest('.player-area');
         if (!playerArea) return;
         const ownerId = parseInt(playerArea.id.split('-')[2], 10);
         const ownerPlayer = players.find(p => p.id === ownerId);
         if (!ownerPlayer) return;
+    
         const cardData = ownerPlayer.reservedCards.find(c => c.id === cardId);
-        if (!cardData) { renderPlayerArea(ownerId); return; }
-        if (selectedCard && selectedCard.id === cardId && selectedCard.type === 'reserved') { clearCardSelectionState(); return; }
-        if (currentAction === 'SELECTING_GEMS') clearGemSelectionState();
-        else if (currentAction === 'SELECTING_CARD' && selectedCard) {
-            if (selectedCard.element) selectedCard.element.classList.remove('selected');
+        if (!cardData) { 
+            renderPlayerArea(ownerId); 
+            return; 
         }
-        currentAction = 'SELECTING_CARD';
+            
+        if (selectedCard && selectedCard.element) {
+            selectedCard.element.classList.remove('selected');
+        }
+        
         selectedCard = { type: 'reserved', level: cardData.level, id: cardId, element: cardEl, ownerId: ownerId };
-        document.querySelectorAll('.reserved-card-small.selected, .card.selected, .deck.selected').forEach(el => el.classList.remove('selected'));
+        
+        document.querySelectorAll('.card.selected, .deck.selected').forEach(el => {
+            el.classList.remove('selected');
+        });
         cardEl.classList.add('selected');
+    
         renderSelectionInfo();
         updateClickableState();
     }
@@ -1045,11 +1169,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function toggleSimulationPause() {
          if (!isSimulationMode) return;
          isSimulationPaused = !isSimulationPaused;
+         const iconEl = simulationPauseBtn.querySelector('svg');
+         const textEl = simulationPauseBtn.querySelector('.btn-text-placeholder');
+
          if (isSimulationPaused) {
-             simulationPauseBtn.textContent = "Resume Sim"; simulationStatusSpan.textContent = "Paused";
+             if (iconEl) iconEl.outerHTML = SVG_ICONS.play;
+             if (textEl) textEl.textContent = "Resume Sim";
+             if(simulationStatusSpan) simulationStatusSpan.textContent = "Paused";
              updateLog("Simulation paused."); stopTimer(); updateClickableState();
          } else {
-             simulationPauseBtn.textContent = "Pause Sim"; simulationStatusSpan.textContent = "Running";
+             if (iconEl) iconEl.outerHTML = SVG_ICONS.pause;
+             if (textEl) textEl.textContent = "Pause Sim";
+             if(simulationStatusSpan) simulationStatusSpan.textContent = "Running";
              updateLog("Simulation resumed."); updateClickableState();
              if (!isOverlayVisible() && !gameTrulyFinished) setTimeout(startTurn, 0);
          }
@@ -1057,8 +1188,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function validateTakeGemsSelection() {
         const gems = selectedGemTypes; const count = gems.length; const uniqueCount = new Set(gems).size;
+        if (count === 0) return false;
         if (count === 3 && uniqueCount === 3) return gems.every(type => bank[type] >= 1);
         if (count === 2 && uniqueCount === 1) return bank[gems[0]] >= MIN_GEMS_FOR_TAKE_TWO;
+        if (count === 2 && uniqueCount === 2) return gems.every(type => bank[type] >= 1);
+        if (count === 1) return bank[gems[0]] >= 1;
         return false;
     }
 
@@ -1066,7 +1200,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!validateTakeGemsSelection()) { updateLog("Invalid gem selection. Action cancelled."); clearActionState(); return; }
         const player = players[currentPlayerIndex]; const gemsTakenLog = {};
         const isTakeTwo = selectedGemTypes.length === 2 && new Set(selectedGemTypes).size === 1;
-        player.stats.gemTakeActions++; if (isTakeTwo) player.stats.take2Actions++; else player.stats.take3Actions++;
+        player.stats.gemTakeActions++; if (isTakeTwo) player.stats.take2Actions++; else player.stats.take3Actions++; 
         selectedGemTypes.forEach(type => {
             if (bank[type] > 0) {
                 bank[type]--; player.gems[type]++; gemsTakenLog[type] = (gemsTakenLog[type] || 0) + 1; player.stats.gemsTaken[type]++;
@@ -1087,7 +1221,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (selectedCard.type === 'deck') {
             if (decks[level].length > 0) { reservedCardData = decks[level].pop(); cardSourceDescription = `from L${level} deck`; player.stats.deckReservations[level]++; }
             else { updateLog(`Cannot reserve: Level ${level} deck is empty.`); clearActionState(); renderCards(); return; }
-        } else {
+        } else { 
             const cardId = selectedCard.id; const cardIndex = visibleCards[level].findIndex(c => c && c.id === cardId);
             if (cardIndex !== -1 && visibleCards[level][cardIndex]) {
                 reservedCardData = visibleCards[level][cardIndex]; cardSourceDescription = `L${level} ${reservedCardData.color} from board`;
@@ -1108,8 +1242,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selectedCard || (selectedCard.type !== 'visible' && selectedCard.type !== 'reserved')) { updateLog("No valid card selected to purchase."); clearActionState(); return; }
         const player = players[currentPlayerIndex]; const cardId = selectedCard.id;
         let purchasedCardData = null; let cardSource = selectedCard.type; let cardIndex = -1; let isFromReserve = (cardSource === 'reserved');
-        if (cardSource === 'visible') { cardIndex = visibleCards[selectedCard.level]?.findIndex(c => c && c.id === cardId); if (cardIndex !== -1) purchasedCardData = visibleCards[selectedCard.level][cardIndex]; }
-        else { cardIndex = player.reservedCards.findIndex(c => c.id === cardId); if (cardIndex !== -1) purchasedCardData = player.reservedCards[cardIndex]; }
+
+        if (cardSource === 'visible') { 
+            cardIndex = visibleCards[selectedCard.level]?.findIndex(c => c && c.id === cardId); 
+            if (cardIndex !== -1) purchasedCardData = visibleCards[selectedCard.level][cardIndex]; 
+        } else { 
+            if (selectedCard.ownerId !== player.id) {
+                updateLog("Cannot purchase reserved card of another player."); 
+                clearActionState();
+                return;
+            }
+            cardIndex = player.reservedCards.findIndex(c => c.id === cardId); 
+            if (cardIndex !== -1) purchasedCardData = player.reservedCards[cardIndex]; 
+        }
+
         if (!purchasedCardData) { updateLog("Cannot purchase: Card not found or unavailable."); clearActionState(); renderCards(); renderPlayerArea(player.id); return; }
         const { canAfford, goldNeeded, effectiveCost } = canAffordCard(player, purchasedCardData);
         if (!canAfford) { updateLog(`Cannot purchase: Not enough resources. Need ${goldNeeded} more gold or equivalent gems.`); return; }
@@ -1283,10 +1429,17 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
         try {
             switch (action.action) {
                 case 'TAKE_GEMS':
-                    if (!action.gems || !Array.isArray(action.gems)) return null; const gemCount = action.gems.length; const uniqueGems = new Set(action.gems);
+                    if (!action.gems || !Array.isArray(action.gems) || action.gems.length === 0) return null; 
+                    const gemCount = action.gems.length; const uniqueGems = new Set(action.gems);
                     if (!action.gems.every(g => GEM_TYPES.includes(g))) return null;
+
                     if (gemCount === 3) { if (uniqueGems.size !== 3 || !action.gems.every(g => gameState.bank[g] >= 1)) return null; }
-                    else if (gemCount === 2) { if (uniqueGems.size !== 1 || gameState.bank[action.gems[0]] < MIN_GEMS_FOR_TAKE_TWO) return null; } else return null;
+                    else if (gemCount === 2) { 
+                        if (uniqueGems.size === 1) { if (gameState.bank[action.gems[0]] < MIN_GEMS_FOR_TAKE_TWO) return null; }
+                        else if (uniqueGems.size === 2) { if (!action.gems.every(g => gameState.bank[g] >=1)) return null;}
+                        else return null; 
+                    } else if (gemCount === 1) { if(gameState.bank[action.gems[0]] < 1) return null; }
+                    else return null; 
                     return action;
                 case 'RESERVE_CARD':
                      if (player.reservedCards.length >= MAX_RESERVED_CARDS || !action.source || (action.source !== 'visible' && action.source !== 'deck')) return null;
@@ -1321,7 +1474,7 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
                     if (cardElement) { cardData = getCardById(action.cardId); if (cardData) { selectedCard = { type: 'visible', level: cardData.level, id: action.cardId, element: cardElement }; performPurchaseCard(); } else executeFallbackAiAction(getGameStateForAI()); } else executeFallbackAiAction(getGameStateForAI());
                  } else {
                       cardData = player.reservedCards.find(c => c.id === action.cardId); cardElement = document.querySelector(`#player-area-${player.id} .reserved-card-small[data-card-id='${action.cardId}']`);
-                      if (cardData && cardElement) { selectedCard = { type: 'reserved', level: cardData.level, id: action.cardId, element: cardElement }; performPurchaseCard(); } else executeFallbackAiAction(getGameStateForAI());
+                      if (cardData && cardElement) { selectedCard = { type: 'reserved', level: cardData.level, id: action.cardId, element: cardElement, ownerId: player.id }; performPurchaseCard(); } else executeFallbackAiAction(getGameStateForAI());
                  } break;
             default: executeFallbackAiAction(getGameStateForAI());
         }
@@ -1332,7 +1485,7 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
         let cheapestCard = null; let minCost = Infinity;
         const checkCardAffordability = (card, source) => { if (!card) return; const { canAfford, effectiveCost } = canAffordCard(player, card); if (canAfford) { const totalCost = Object.values(effectiveCost).reduce((sum, c) => sum + c, 0); const costMetric = totalCost - (card.vp * 0.1); if (costMetric < minCost) { minCost = costMetric; cheapestCard = { ...card, source: source }; } } };
         Object.values(visibleCards).flat().forEach(card => checkCardAffordability(card, 'visible')); player.reservedCards.forEach(card => checkCardAffordability(card, 'reserved'));
-        if (cheapestCard) { updateLog(`AI Fallback: Purchasing cheapest card ${cheapestCard.id}`); const cardElement = cheapestCard.source === 'visible' ? document.querySelector(`.card[data-card-id='${cheapestCard.id}']`) : document.querySelector(`#player-area-${player.id} .reserved-card-small[data-card-id='${cheapestCard.id}']`); if (cardElement) { selectedCard = { type: cheapestCard.source, level: cheapestCard.level, id: cheapestCard.id, element: cardElement }; performPurchaseCard(); return; } }
+        if (cheapestCard) { updateLog(`AI Fallback: Purchasing cheapest card ${cheapestCard.id}`); const cardElement = cheapestCard.source === 'visible' ? document.querySelector(`.card[data-card-id='${cheapestCard.id}']`) : document.querySelector(`#player-area-${player.id} .reserved-card-small[data-card-id='${cheapestCard.id}']`); if (cardElement) { selectedCard = { type: cheapestCard.source, level: cheapestCard.level, id: cheapestCard.id, element: cardElement, ownerId: cheapestCard.source === 'reserved' ? player.id : undefined }; performPurchaseCard(); return; } }
         const availableTypes = GEM_TYPES.filter(g => bank[g] > 0); if (availableTypes.length >= 3) { selectedGemTypes = availableTypes.slice(0, 3); updateLog(`AI Fallback: Taking 3 gems: ${selectedGemTypes.join(', ')}`); performTakeGems(); return; }
         const takeTwoType = GEM_TYPES.find(g => bank[g] >= MIN_GEMS_FOR_TAKE_TWO); if (takeTwoType) { selectedGemTypes = [takeTwoType, takeTwoType]; updateLog(`AI Fallback: Taking 2 ${takeTwoType} gems.`); performTakeGems(); return; }
         if (player.reservedCards.length < MAX_RESERVED_CARDS) { const l1Visible = visibleCards[1].find(c => c !== null); if (l1Visible) { const cardElement = document.querySelector(`.card[data-card-id='${l1Visible.id}']`); if (cardElement) { updateLog(`AI Fallback: Reserving L1 card ${l1Visible.id}`); selectedCard = { type: 'visible', level: 1, id: l1Visible.id, element: cardElement }; performReserveCard(); return; } } else if (decks[1].length > 0) { updateLog(`AI Fallback: Reserving from L1 deck.`); const deckElement = deckElements[1]; selectedCard = { type: 'deck', level: 1, id: `deck-1`, element: deckElement }; performReserveCard(); return; } }
@@ -1492,7 +1645,8 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
         returnGemsPlayerDisplay.innerHTML = '';
         GEM_TYPES.forEach(type => { for (let i = 0; i < player.gems[type]; i++) { const gemEl = createGemElement(type, 1, false); gemEl.classList.add('clickable'); gemEl.dataset.returnGemType = type; gemEl.onclick = () => toggleReturnGemSelection(gemEl, gemsToReturnCount); returnGemsPlayerDisplay.appendChild(gemEl); } });
         if (player.gems.gold > 0) { const goldEl = createGemElement(GOLD, player.gems.gold, true); goldEl.style.cssText = 'opacity:0.5; cursor:not-allowed; margin-left:10px; width:25px; height:25px;'; goldEl.title = "Gold tokens cannot be returned"; if (goldEl.querySelector('.gem-count')) goldEl.querySelector('.gem-count').style.fontSize = '0.7em'; returnGemsPlayerDisplay.appendChild(goldEl); }
-        confirmReturnGemsBtn.disabled = true; returnGemsSelectionDisplay.textContent = `Selected to return: 0 / ${gemsToReturnCount}`;
+        confirmReturnGemsBtn.disabled = true; confirmReturnGemsBtn.classList.remove('btn-primary'); confirmReturnGemsBtn.classList.add('btn-confirm'); 
+        returnGemsSelectionDisplay.textContent = `Selected to return: 0 / ${gemsToReturnCount}`;
         confirmReturnGemsBtn.onclick = () => { handleConfirmReturnGems(player, gemsToReturnCount, callback); updateClickableState(); };
         returnGemsOverlay.classList.remove('hidden'); updateClickableState();
     }
@@ -1542,20 +1696,50 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
         if (simulationPauseBtn) simulationPauseBtn.classList.add('hidden'); if (simulationStatusSpan) simulationStatusSpan.classList.add('hidden');
     }
 
-    function clearActionState() { clearGemSelectionState(); clearCardSelectionState(); currentAction = null; renderSelectionInfo(); updateClickableState(); }
-    function clearGemSelectionState() { if(gemBankContainer) gemBankContainer.querySelectorAll('.gem.selected').forEach(el => el.classList.remove('selected')); selectedGemTypes = []; if (currentAction === 'SELECTING_GEMS') currentAction = null; }
-    function clearCardSelectionState() {
-        if (selectedCard && selectedCard.element) if (selectedCard.element.classList.contains('card') || selectedCard.element.classList.contains('deck') || selectedCard.element.classList.contains('reserved-card-small')) selectedCard.element.classList.remove('selected');
-        selectedCard = null; const existingPreview = selectionInfoDiv?.querySelector('.card-preview-container');
-        if (existingPreview) existingPreview.remove();
-        selectionInfoDiv?.querySelectorAll('.selection-text').forEach(p => p.style.display = 'block');
-        if(selectedCardDisplay) selectedCardDisplay.textContent = 'None';
-        if (currentAction === 'SELECTING_CARD') currentAction = null;
-        renderSelectionInfo(); updateClickableState();
+    function clearActionState() {
+        clearGemSelectionState();
+        clearCardSelectionState(); 
+        currentAction = null; 
+        renderSelectionInfo(); 
+        updateClickableState();
     }
+
+    function clearGemSelectionState() { 
+        if(gemBankContainer) gemBankContainer.querySelectorAll('.gem.selected').forEach(el => el.classList.remove('selected')); 
+        selectedGemTypes = []; 
+        if (currentAction === 'SELECTING_GEMS') currentAction = null; 
+    }
+
+    function clearCardSelectionState() {
+        if (selectedCard && selectedCard.element) {
+            if (selectedCard.element.classList.contains('card') || 
+                selectedCard.element.classList.contains('deck') || 
+                selectedCard.element.classList.contains('reserved-card-small')) {
+                selectedCard.element.classList.remove('selected');
+            }
+        }
+        selectedCard = null;
+        if (apCardPreview) apCardPreview.innerHTML = ''; 
+        if (currentAction === 'SELECTING_CARD') currentAction = null;
+    }
+
     function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } return array; }
     function countOccurrences(arr, val) { return arr.reduce((count, current) => (current === val ? count + 1 : count), 0); }
-    function getCardById(id) { if (!id || typeof id !== 'string') return null; for (let level = 1; level <= 3; level++) { const card = visibleCards[level]?.find(c => c && c.id === id); if (card) return card; } for (const p of players) { const card = p.reservedCards?.find(c => c && c.id === id); if (card) return card; } return null; }
+    function getCardById(id) { 
+        if (!id || typeof id !== 'string') return null; 
+        for (let level = 1; level <= 3; level++) { 
+            const card = visibleCards[level]?.find(c => c && c.id === id); 
+            if (card) return JSON.parse(JSON.stringify(card)); 
+        } 
+        for (const p of players) { 
+            const card = p.reservedCards?.find(c => c && c.id === id); 
+            if (card) return JSON.parse(JSON.stringify(card)); 
+        } 
+        const allCardsCard = ALL_CARDS.find(c => c.id === id);
+        if (allCardsCard) return JSON.parse(JSON.stringify(allCardsCard));
+
+        return null; 
+    }
     function getDeckCardPlaceholder(level) { return { level: level, color: 'deck', cost: {}, vp: 0, id: `deck-${level}` }; }
     function canAffordCard(player, cardData) { if (!player || !cardData || !cardData.cost) { return { canAfford: false, goldNeeded: 0, effectiveCost: {} }; } let goldNeeded = 0; const effectiveCost = {}; GEM_TYPES.forEach(gemType => { const cardCost = cardData.cost[gemType] || 0; const playerBonus = player.bonuses[gemType] || 0; const costAfterBonus = Math.max(0, cardCost - playerBonus); effectiveCost[gemType] = costAfterBonus; const playerHasGem = player.gems[gemType] || 0; if (playerHasGem < costAfterBonus) goldNeeded += costAfterBonus - playerHasGem; }); const playerHasGold = player.gems.gold || 0; const canAfford = playerHasGold >= goldNeeded; return { canAfford, goldNeeded, effectiveCost }; }
     function drawCard(level, index) { if (decks[level].length > 0) visibleCards[level][index] = decks[level].pop(); else visibleCards[level][index] = null; }
@@ -1563,55 +1747,206 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
     function formatCardCostForTitle(cardData) { let title = `L${cardData.level} ${cardData.color} (${cardData.vp} VP)`; const costString = GEM_TYPES.map(type => ({ type, count: cardData.cost[type] || 0 })).filter(item => item.count > 0).map(item => `${item.count} ${item.type}`).join(', '); title += `\nCost: ${costString || 'Free'}`; return title; }
     function createTinyCardElement(cardData) { const cardEl = document.createElement('div'); if (!cardData) return cardEl; cardEl.classList.add('tiny-card', `card-border-${cardData.color}`); const costString = Object.entries(cardData.cost || {}).filter(([,c]) => c > 0).map(([t,c]) => `${c}${t.slice(0,1).toUpperCase()}`).join(', '); cardEl.title = `L${cardData.level} ${cardData.color} (${cardData.vp} VP)\nCost: ${costString || 'Free'}`; const vpSpan = document.createElement('span'); vpSpan.classList.add('tiny-card-vp'); vpSpan.textContent = cardData.vp > 0 ? cardData.vp : ''; const gemBonus = document.createElement('div'); gemBonus.classList.add('tiny-card-gem', `gem-${cardData.color}`); cardEl.appendChild(vpSpan); cardEl.appendChild(gemBonus); return cardEl; }
     function createGemFlowString(gemCounts) { return GEM_TYPES.map(type => ({ type, count: gemCounts[type] || 0 })).filter(item => item.count > 0).map(item => `<span class="gem-inline gem-${item.type}" title="${item.count} ${item.type}">${item.count}</span>`).join(' ') || '<span class="no-items">0</span>'; }
+    
     function updateClickableState() {
         if (!players || players.length === 0 || (currentPlayerIndex >= players.length && !gameTrulyFinished) ) {
-            console.warn("updateClickableState called prematurely or with invalid currentPlayerIndex.");
             return;
         }
         const player = players[currentPlayerIndex]; 
-        const disableAll = gameTrulyFinished || isSimulationMode || isOverlayVisible() || (player && player.type === 'ai');
-        const allPotentiallyInteractive = document.querySelectorAll( '#gem-bank .gem, #cards-area .card:not(.empty-slot), #cards-area .deck, .player-area .reserved-card-small, #end-turn-early-btn, #simulation-pause-btn' );
-        allPotentiallyInteractive.forEach(el => { const isPauseButton = el.id === 'simulation-pause-btn'; const shouldBeDisabled = disableAll && !(isPauseButton && isSimulationMode && !gameTrulyFinished); el.classList.toggle('not-selectable', shouldBeDisabled); if (shouldBeDisabled) { el.classList.remove('selected', 'not-affordable', 'card-affordable-now'); if (el.tagName === 'BUTTON') el.disabled = true; } else if (el.tagName === 'BUTTON') el.disabled = false; });
-        if (disableAll) { if(dynamicActionButtonsContainer) dynamicActionButtonsContainer.innerHTML = ''; if (!isOverlayVisible() && currentAction) clearActionState(); document.querySelectorAll('.nobles-container .noble').forEach(el => el.style.pointerEvents = 'none'); if (isSimulationMode && !gameTrulyFinished && simulationPauseBtn) { simulationPauseBtn.disabled = false; simulationPauseBtn.classList.remove('not-selectable'); } return; }
-        document.querySelectorAll('.nobles-container .noble').forEach(el => el.style.pointerEvents = 'auto'); const isHumanActiveTurn = player && player.type === 'human';
-        gemBankContainer?.querySelectorAll('.gem').forEach(gemEl => { const gemType = gemEl.dataset.gemType; const isSelected = gemEl.classList.contains('selected'); let clickable = isHumanActiveTurn ? isGemClickable(gemType, isSelected) : false; gemEl.classList.toggle('not-selectable', !clickable); gemEl.removeEventListener('click', handleGemClickWrapper); if (clickable) gemEl.addEventListener('click', handleGemClickWrapper); });
-        document.querySelectorAll('#cards-area .card:not(.empty-slot), #cards-area .deck').forEach(el => {
-             let disable = true; const isDeck = el.classList.contains('deck'); const isCard = el.classList.contains('card');
-             if (isHumanActiveTurn) {
-                 let canPlayerAfford = false; let cardData = isCard ? getCardById(el.dataset.cardId) : null; if (player && cardData) canPlayerAfford = canAffordCard(player, cardData).canAfford;
-                 if (currentAction === 'SELECTING_GEMS' || (currentAction === 'SELECTING_CARD' && selectedCard?.element !== el)) disable = true;
-                 else { if (isDeck) disable = el.classList.contains('empty') || (currentAction === null && player.reservedCards.length >= MAX_RESERVED_CARDS); else if (isCard && cardData) disable = currentAction === null && !canPlayerAfford && !(player.reservedCards.length < MAX_RESERVED_CARDS); else disable = !isCard || !cardData; }
-                 if (isCard && cardData && !disable) { el.classList.toggle('not-affordable', !canPlayerAfford); el.classList.toggle('card-affordable-now', canPlayerAfford && currentAction !== 'SELECTING_CARD'); } else el.classList.remove('not-affordable', 'card-affordable-now');
-             }
-             el.classList.toggle('not-selectable', disable); el.removeEventListener('click', handleVisibleCardClickWrapper); el.onclick = null;
-             if (!disable) { if(isCard) el.addEventListener('click', handleVisibleCardClickWrapper); else if(isDeck) { const level = parseInt(el.id.split('-')[1], 10); if(!isNaN(level)) el.onclick = () => handleDeckClick(level); } }
-         });
-        document.querySelectorAll(`.player-area .reserved-card-small`).forEach(cardEl => {
-            cardEl.classList.remove('not-selectable'); cardEl.removeEventListener('click', handleReservedCardClickWrapper); cardEl.addEventListener('click', handleReservedCardClickWrapper);
-            const cardPlayerArea = cardEl.closest('.player-area'); const cardPlayerId = cardPlayerArea ? parseInt(cardPlayerArea.id.split('-')[2], 10) : -1;
-            cardEl.classList.remove('not-affordable', 'card-affordable-now');
-            if (isHumanActiveTurn && cardPlayerId === currentPlayerIndex) {
-                let canPlayerAfford = false; let cardData = player.reservedCards?.find(c => c.id === cardEl.dataset.cardId); if (cardData) canPlayerAfford = canAffordCard(player, cardData).canAfford;
-                cardEl.classList.toggle('not-affordable', !canPlayerAfford); cardEl.classList.toggle('card-affordable-now', canPlayerAfford && currentAction !== 'SELECTING_CARD');
+        const disableAllInteraction = gameTrulyFinished || isSimulationMode || isOverlayVisible() || (player && player.type === 'ai');
+        
+        const allPotentiallyInteractive = document.querySelectorAll(
+            '#gem-bank .gem, #cards-area .card:not(.empty-slot), #cards-area .deck, .player-area .reserved-card-small, #end-turn-early-btn, #simulation-pause-btn, #ap-cancel-btn'
+        );
+        allPotentiallyInteractive.forEach(el => {
+            const isPauseButton = el.id === 'simulation-pause-btn';
+            const shouldBeDisabledOverall = disableAllInteraction && !(isPauseButton && isSimulationMode && !gameTrulyFinished);
+            
+            el.classList.toggle('not-selectable', shouldBeDisabledOverall);
+            if (shouldBeDisabledOverall) {
+                el.classList.remove('selected', 'not-affordable', 'card-affordable-now');
+                if (el.tagName === 'BUTTON') el.disabled = true;
+            } else if (el.tagName === 'BUTTON') { 
+                el.disabled = false; 
             }
         });
+
+        if (disableAllInteraction) {
+            if (apActionButtons) {
+                const dynamicButtons = apActionButtons.querySelectorAll('button:not(#ap-cancel-btn)');
+                dynamicButtons.forEach(btn => btn.remove());
+            }
+            if (apCancelBtn && !apCancelBtn.classList.contains('hidden') && !isOverlayVisible()) {
+                apCancelBtn.classList.add('hidden');
+            }
+            if (!isOverlayVisible() && currentAction) {
+                // clearActionState called within startTurn/endTurn, avoid recursion here
+            }
+            document.querySelectorAll('.nobles-container .noble.clickable').forEach(el => el.style.pointerEvents = 'none');
+            if (isSimulationMode && !gameTrulyFinished && simulationPauseBtn) {
+                simulationPauseBtn.disabled = false;
+                simulationPauseBtn.classList.remove('not-selectable');
+            }
+            return; 
+        }
+
+        document.querySelectorAll('.nobles-container .noble.clickable').forEach(el => el.style.pointerEvents = 'auto');
+        const isHumanActiveTurn = player && player.type === 'human';
+
+        gemBankContainer?.querySelectorAll('.gem').forEach(gemEl => {
+            const gemType = gemEl.dataset.gemType;
+            const isSelected = gemEl.classList.contains('selected');
+            let clickable = isHumanActiveTurn ? isGemClickable(gemType, isSelected) : false;
+            gemEl.classList.toggle('not-selectable', !clickable && !isSelected); 
+        });
+
+        document.querySelectorAll('#cards-area .card:not(.empty-slot), #cards-area .deck').forEach(el => {
+             let disableSpecificInteraction = true;
+             const isSelectedElement = selectedCard && selectedCard.element === el;
+            
+             if (isHumanActiveTurn) {
+                 if (isSelectedElement) { 
+                     disableSpecificInteraction = false;
+                 } else if (currentAction === 'SELECTING_GEMS') {
+                     disableSpecificInteraction = true;
+                 } else { 
+                     if (el.classList.contains('deck')) {
+                         disableSpecificInteraction = el.classList.contains('empty') || (player.reservedCards.length >= MAX_RESERVED_CARDS);
+                     } else if (el.classList.contains('card')) {
+                         const cardData = getCardById(el.dataset.cardId);
+                         const canAfford = cardData ? canAffordCard(player, cardData).canAfford : false;
+                         // Can select to reserve if limit not reached, OR can select to buy if affordable
+                         disableSpecificInteraction = !( (player.reservedCards.length < MAX_RESERVED_CARDS) || canAfford );
+                     }
+                 }
+             }
+             el.classList.toggle('not-selectable', disableSpecificInteraction);
+
+             if (el.classList.contains('card') && !el.classList.contains('empty-slot')) {
+                 const cardData = getCardById(el.dataset.cardId);
+                 const canAfford = cardData ? canAffordCard(player, cardData).canAfford : false;
+                 el.classList.toggle('not-affordable', !canAfford && !isSelectedElement);
+                 el.classList.toggle('card-affordable-now', canAfford && !isSelectedElement);
+             } else {
+                  el.classList.remove('not-affordable', 'card-affordable-now');
+             }
+         });
+
+        document.querySelectorAll(`.player-area .reserved-card-small`).forEach(cardEl => {
+            let disableSpecificInteraction = true;
+            const isSelectedElement = selectedCard && selectedCard.element === cardEl;
+            const cardPlayerArea = cardEl.closest('.player-area');
+            const cardPlayerId = cardPlayerArea ? parseInt(cardPlayerArea.id.split('-')[2], 10) : -1;
+
+            if (isHumanActiveTurn) { // Only current player can truly interact for actions
+                if (cardPlayerId === currentPlayerIndex) {
+                    if (isSelectedElement) { // Can always deselect own selected card
+                        disableSpecificInteraction = false;
+                    } else if (currentAction === 'SELECTING_GEMS') { // If selecting gems, can't select cards
+                        disableSpecificInteraction = true;
+                    } else { 
+                        // Can select any of own reserved cards to view/potentially buy
+                        disableSpecificInteraction = false; 
+                    }
+                } else { // Other players' reserved cards are not selectable for action
+                    disableSpecificInteraction = true;
+                }
+            }
+            
+            cardEl.classList.toggle('not-selectable', disableSpecificInteraction);
+            
+            if (cardPlayerId === currentPlayerIndex) {
+                const cardData = player.reservedCards?.find(c => c.id === cardEl.dataset.cardId);
+                const canAfford = cardData ? canAffordCard(player, cardData).canAfford : false;
+                cardEl.classList.toggle('not-affordable', !canAfford && !isSelectedElement);
+                cardEl.classList.toggle('card-affordable-now', canAfford && !isSelectedElement);
+            } else {
+                 cardEl.classList.remove('not-affordable', 'card-affordable-now');
+            }
+        });
+
+        if (apCancelBtn) {
+            const disableCancel = !currentAction || disableAllInteraction;
+            apCancelBtn.disabled = disableCancel;
+            apCancelBtn.classList.toggle('not-selectable', disableCancel);
+        }
     }
-    function isGemClickable(gemType, isSelectedVisual) { if (bank[gemType] <= 0 || gemType === GOLD || currentAction === 'SELECTING_CARD') return false; const currentSelection = selectedGemTypes; const currentCount = currentSelection.length; const currentUniqueCount = new Set(currentSelection).size; if (isSelectedVisual) return true; else { if (currentCount === 0) return true; else if (currentCount === 1) { const firstType = currentSelection[0]; return (gemType !== firstType && bank[gemType] >= 1) || (gemType === firstType && bank[gemType] >= MIN_GEMS_FOR_TAKE_TWO); } else if (currentCount === 2) return currentUniqueCount === 2 && !currentSelection.includes(gemType) && bank[gemType] >= 1; else return false; } }
+
+    function isGemClickable(gemType, isSelectedVisual) { 
+        if (bank[gemType] <= 0 || gemType === GOLD ) return false; // Removed: currentAction === 'SELECTING_CARD'
+        
+        if (isSelectedVisual) return true; 
+
+        const currentSelection = selectedGemTypes; 
+        const currentCount = currentSelection.length; 
+        const currentUniqueCount = new Set(currentSelection).size; 
+        
+        if (currentCount === 0) return bank[gemType] >= 1;
+        if (currentCount === 1) {
+            const firstType = currentSelection[0];
+            if (gemType === firstType) return bank[gemType] >= MIN_GEMS_FOR_TAKE_TWO; 
+            return bank[gemType] >= 1; 
+        }
+        if (currentCount === 2) {
+            if (currentUniqueCount === 1) return false; 
+            return !currentSelection.includes(gemType) && bank[gemType] >= 1; 
+        }
+        return false; 
+    }
     function highlightActivePlayer() { document.querySelectorAll('.player-area.active-player').forEach(el => el.classList.remove('active-player')); if (!gameTrulyFinished) { const activePlayerEl = document.getElementById(`player-area-${currentPlayerIndex}`); if (activePlayerEl) activePlayerEl.classList.add('active-player'); } }
-    function updateLog(message) { if (!logMessagesDiv) return; const p = document.createElement('p'); const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }); const turnPrefix = `[T${turnNumber}]`; p.textContent = `${timestamp} ${turnPrefix} ${message}`; logMessagesDiv.appendChild(p); logMessagesDiv.scrollTop = logMessagesDiv.scrollHeight; }
+    function updateLog(message) {
+        if (!logMessagesDiv) return;
+        const p = document.createElement('p');
+        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const turnPrefix = `[T${turnNumber}]`;
+        p.textContent = `${timestamp} ${turnPrefix} ${message}`;
+        
+        p.classList.add('new-log-entry');
+        logMessagesDiv.appendChild(p);
+        logMessagesDiv.scrollTop = logMessagesDiv.scrollHeight;
+        setTimeout(() => {
+            p.classList.remove('new-log-entry');
+        }, 500); 
+    }
     function hideOverlays() { [returnGemsOverlay, gameOverOverlay, nobleChoiceOverlay, aiThinkingOverlay].forEach(overlay => overlay?.classList.add('hidden')); }
     function isOverlayVisible() { return [returnGemsOverlay, gameOverOverlay, nobleChoiceOverlay, aiThinkingOverlay].some(overlay => overlay && !overlay.classList.contains('hidden')); }
     function startTimer() {
-        stopTimer(); if (isSimulationMode || gameSettings.timerMinutes <= 0 || turnDuration <= 0 || !timerDisplay) { renderTimer(); return; }
-        const currentPlayer = players[currentPlayerIndex]; if (!currentPlayer || currentPlayer.type === 'ai') { renderTimer(); return; }
-        turnTimeRemaining = turnDuration; renderTimer();
+        stopTimer(); 
+        if (!timerDisplay) return;
+        timerDisplay.classList.remove('active-timer-pulse', 'timer-low'); 
+
+        if (isSimulationMode || gameSettings.timerMinutes <= 0 || turnDuration <= 0) { 
+            renderTimer(); return; 
+        }
+        const currentPlayer = players[currentPlayerIndex]; 
+        if (!currentPlayer || currentPlayer.type === 'ai') { 
+            renderTimer(); return; 
+        }
+
+        turnTimeRemaining = turnDuration; 
+        renderTimer(); 
+        timerDisplay.classList.add('active-timer-pulse'); 
+
         turnTimerInterval = setInterval(() => {
-             const player = players[currentPlayerIndex]; if (gameTrulyFinished || !player || player.type === 'ai' || isOverlayVisible() || (isSimulationMode && isSimulationPaused)) { stopTimer(); renderTimer(); return; }
-            turnTimeRemaining--; renderTimer();
-            if (turnTimeRemaining < 0) { updateLog(`Player ${player.name}'s turn timed out.`); clearActionState(); logActionToHistory(player, 'TIMEOUT', {}); endTurn('TIMEOUT'); }
+             const player = players[currentPlayerIndex]; 
+             if (gameTrulyFinished || !player || player.type === 'ai' || isOverlayVisible() || (isSimulationMode && isSimulationPaused)) { 
+                 stopTimer(); renderTimer(); return; 
+             }
+            turnTimeRemaining--; 
+            renderTimer(); 
+            if (turnTimeRemaining < 0) { 
+                updateLog(`Player ${player.name}'s turn timed out.`); 
+                clearActionState(); 
+                logActionToHistory(player, 'TIMEOUT', {}); 
+                endTurn('TIMEOUT'); 
+            }
         }, 1000);
     }
-    function stopTimer() { clearInterval(turnTimerInterval); turnTimerInterval = null; }
+    function stopTimer() { 
+        clearInterval(turnTimerInterval); 
+        turnTimerInterval = null; 
+        if(timerDisplay) timerDisplay.classList.remove('active-timer-pulse');
+    }
     function showAiThinking(playerName) { if (!aiThinkingOverlay || !aiThinkingPlayerName) return; aiThinkingPlayerName.textContent = playerName ? `(${playerName})` : ''; aiThinkingOverlay.classList.remove('hidden'); }
     function hideAiThinking() { if (!aiThinkingOverlay) return; aiThinkingOverlay.classList.add('hidden'); }
     function logActionToHistory(player, actionType, details) { const logEntry = { turn: turnNumber, playerIndex: player.id, playerName: player.name, playerType: player.type, actionType: actionType, details: JSON.parse(JSON.stringify(details)) }; gameHistoryLog.push(logEntry); }
@@ -1631,4 +1966,5 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
     if (simulationSpeedContainer && simulationModeCheckbox) {
         simulationSpeedContainer.classList.toggle('hidden', !simulationModeCheckbox.checked);
     }
+    renderSelectionInfo(); 
 });

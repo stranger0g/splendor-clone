@@ -23,10 +23,9 @@
                     <span id="api-key-tooltip-text" class="api-key-tooltip">Checking API Key...</span>
                 </div>
             </div>
-            <!-- Subtitle "Configure Your Game" removed -->
 
             <div class="setup-panels-container">
-                <div class="setup-left-panel"> <!-- This will now stack above the right panel -->
+                <div class="setup-left-panel">
                     <h2 class="panel-title">Game Configuration</h2>
 
                     <div class="setup-option">
@@ -66,7 +65,7 @@
                     </div>
                 </div>
 
-                <div class="setup-right-panel"> <!-- This will now stack below the left panel -->
+                <div class="setup-right-panel">
                     <h2 class="panel-title">Player Details</h2>
                     <div id="player-names">
                         <!-- Player setup entries will be dynamically inserted here by script.js -->
@@ -86,7 +85,7 @@
         <div id="game-board">
             <div id="top-bar">
                 <div id="nobles-area">
-                    <h2>Nobles</h2>
+                    <h2>Available Patrons</h2>
                     <div class="nobles-container">
                         <!-- Nobles will be dynamically inserted here -->
                     </div>
@@ -99,48 +98,76 @@
                     <h2>Game Log</h2>
                     <div id="log-messages">
                     </div>
-                     <button id="end-turn-early-btn" class="btn btn-secondary hidden">End Turn</button>
-                     <button id="simulation-pause-btn" class="btn btn-secondary hidden">Pause Sim</button>
+                     <button id="end-turn-early-btn" class="btn btn-secondary hidden">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="margin-right: 5px; vertical-align: middle;"><path d="M0 0h24v24H0z" fill="none"/><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6zM5 6h7.4l.4 2H19v2h-3.6l-.4-2H7V6zm0 11v-2h7.6l.4 2H19v2h-5.6l-.4-2H5z"/></svg>
+                        <span class="btn-text-placeholder">End Turn</span>
+                    </button>
+                     <button id="simulation-pause-btn" class="btn btn-secondary hidden">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="margin-right: 5px; vertical-align: middle;"><path d="M0 0h24v24H0z" fill="none"/><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                        <span class="btn-text-placeholder">Pause Sim</span>
+                    </button>
                      <span id="simulation-status" class="hidden"></span>
                 </div>
             </div>
 
             <div id="main-area">
                 <div id="bank-area">
-                    <h2>Gem Bank</h2>
+                    <h2>Treasury</h2>
                     <div id="gem-bank" class="gems-container">
+                        <!-- Gem bank will be dynamically inserted here -->
                     </div>
-                     <div id="selection-info">
-                        <p class="selection-text">Selected Gems: <span id="selected-gems-display">None</span></p>
-                        <p class="selection-text">Selected Card: <span id="selected-card-display">None</span></p>
-                         <div id="dynamic-action-buttons" style="margin-top: 8px;">
-                         </div>
-                    </div>
+                     <!-- Old #selection-info div is REMOVED as per plan -->
                 </div>
 
                 <div id="cards-area">
-                    <div class="card-level-row" id="level-3-row">
-                        <h3>Level 3</h3>
-                        <div class="deck" id="deck-3" title="Level 3 Deck">Deck (<span id="deck-3-count">0</span>)</div>
-                        <div class="visible-cards" id="visible-cards-3">
+                    <div id="card-rows-wrapper">
+                        <div class="card-level-row" id="level-3-row">
+                            <h3>Level 3</h3>
+                            <div class="deck" id="deck-3" title="Level 3 Deck">Deck (<span id="deck-3-count">0</span>)</div>
+                            <div class="visible-cards" id="visible-cards-3">
+                                <!-- Visible cards for level 3 -->
+                            </div>
+                        </div>
+                         <div class="card-level-row" id="level-2-row">
+                            <h3>Level 2</h3>
+                            <div class="deck" id="deck-2" title="Level 2 Deck">Deck (<span id="deck-2-count">0</span>)</div>
+                            <div class="visible-cards" id="visible-cards-2">
+                                <!-- Visible cards for level 2 -->
+                            </div>
+                        </div>
+                         <div class="card-level-row" id="level-1-row">
+                            <h3>Level 1</h3>
+                            <div class="deck" id="deck-1" title="Level 1 Deck">Deck (<span id="deck-1-count">0</span>)</div>
+                            <div class="visible-cards" id="visible-cards-1">
+                                <!-- Visible cards for level 1 -->
+                            </div>
                         </div>
                     </div>
-                     <div class="card-level-row" id="level-2-row">
-                        <h3>Level 2</h3>
-                        <div class="deck" id="deck-2" title="Level 2 Deck">Deck (<span id="deck-2-count">0</span>)</div>
-                        <div class="visible-cards" id="visible-cards-2">
+                    <div id="action-panel"> <!-- New action panel, moved inside cards-area -->
+                        <div id="ap-selected-items">
+                            <p id="ap-selection-text">Select gems or a card.</p>
+                            <div id="ap-selected-gems-display" class="gems-container small-gems">
+                                <!-- Selected gem elements will be dynamically appended here -->
+                            </div>
                         </div>
-                    </div>
-                     <div class="card-level-row" id="level-1-row">
-                        <h3>Level 1</h3>
-                        <div class="deck" id="deck-1" title="Level 1 Deck">Deck (<span id="deck-1-count">0</span>)</div>
-                        <div class="visible-cards" id="visible-cards-1">
+                        <div id="ap-card-preview">
+                            <!-- Large card preview or placeholder will be dynamically inserted here -->
+                        </div>
+                        <div id="ap-action-buttons">
+                            <!-- Purchase/Reserve/Confirm buttons will be dynamically inserted here -->
+                            <button id="ap-cancel-btn" class="btn btn-warning hidden">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="margin-right: 5px; vertical-align: middle;"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                                <span class="btn-text-placeholder">Cancel</span>
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- The old #action-panel that was a direct child of #main-area is REMOVED -->
+
             <div id="players-area">
+                <!-- Player areas will be dynamically inserted here -->
             </div>
         </div>
 
@@ -150,7 +177,7 @@
                 <p>You have too many total tokens (<span id="return-gems-count">0</span>/10). Please select <span id="return-gems-needed">0</span> non-gold gems to return.</p>
                 <div id="return-gems-player-display" class="gems-container small-gems"></div>
                 <div id="return-gems-selection-display">Selected to return: 0/0</div>
-                <button id="confirm-return-gems-btn" class="btn" disabled>Confirm Return</button>
+                <button id="confirm-return-gems-btn" class="btn btn-confirm" disabled>Confirm Return</button>
             </div>
         </div>
 
