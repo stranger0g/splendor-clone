@@ -429,17 +429,16 @@ h4 { margin: 8px 0 4px 0; font-size: 1em; color: var(--text-secondary); font-wei
     background-color: var(--bg-noble-artwork-area);
     border-radius: 3px;
     display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 30px;
+    flex-direction: column; 
+    justify-content: flex-end; 
+    padding: 5px; 
+    min-height: 30px; 
 }
-.noble-requirements-footer {
-    padding: 0px 5px 4px 5px; 
+.noble-requirements-container { /* Renamed from .noble-requirements-footer */
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: flex-start; 
     gap: 2px;
-    width: 100%;
 }
 .req-item {
     font-size: 11px;
@@ -482,6 +481,7 @@ h4 { margin: 8px 0 4px 0; font-size: 1em; color: var(--text-secondary); font-wei
 .player-area.player-color-2 { border-top: 4px solid var(--player-color-2-bg); background-color: var(--player-color-2-bg-subtle); }
 .player-area.player-color-3 { border-top: 4px solid var(--player-color-3-bg); background-color: var(--player-color-3-bg-subtle); }
 .player-area.player-color-4 { border-top: 4px solid var(--player-color-4-bg); background-color: var(--player-color-4-bg-subtle); }
+
 .player-area.active-player { 
     border-color: var(--highlight-active) !important; 
     border-top-width: 4px; 

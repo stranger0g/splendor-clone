@@ -4,7 +4,7 @@ const SVG_ICONS = {
     play: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M8 5v14l11-7z"/></svg>',
     flag: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6h-5.6zM5 6h7.4l.4 2H19v2h-3.6l-.4-2H7V6zm0 11v-2h7.6l.4 2H19v2h-5.6l-.4-2H5z"/></svg>',
     cancel: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>',
-    gear: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M19.44 12.99l-.01.02c.04-.33.08-.67.08-1.01 0-.34-.03-.68-.07-1.01l.01.02 2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.44 2.24 14.2 2 13.96 2h-4c-.25 0-.48.24-.49.51l-.38 2.65c-.61.25-1.17.59-1.69-.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65-.01-.02c-.04.33-.07.67-.07 1.01 0 .34.03.68.07 1.01l.01-.02-2.11 1.65c-.19-.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69-.98l.38 2.65c.01.27.24.51.49.51h4c.25 0 .48-.24.49.51l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61.22l2-3.46c.12-.22-.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>'
+    gear: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M0 0h24v24H0z" fill="none"/><path d="M19.44 12.99l-.01.02c.04-.33.08-.67.08-1.01 0-.34-.03-.68-.07-1.01l.01.02 2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.44 2.24 14.2 2 13.96 2h-4c-.25 0-.48.24-.49.51l-.38 2.65c-.61.25-1.17.59-1.69-.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65-.01-.02c-.04.33-.07.67-.07 1.01 0 .34.03.68.07 1.01l.01-.02-2.11 1.65c-.19-.15-.24.42-.12-.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69-.98l.38 2.65c.01.27.24.51.49.51h4c.25 0 .48-.24.49-.51l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61.22l2-3.46c.12-.22-.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>'
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -818,10 +818,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
         const artworkAreaDiv = document.createElement('div');
         artworkAreaDiv.classList.add('noble-artwork-area');
-        nobleEl.appendChild(artworkAreaDiv);
-    
-        const requirementsFooterDiv = document.createElement('div');
-        requirementsFooterDiv.classList.add('noble-requirements-footer');
+        
+        const requirementsContainerDiv = document.createElement('div');
+        requirementsContainerDiv.classList.add('noble-requirements-container'); 
     
         GEM_TYPES.forEach(gemType => {
             const req = nobleData.requirements[gemType];
@@ -834,10 +833,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 reqGem.classList.add('req-gem', `gem-${gemType}`);
                 reqItem.appendChild(reqGem); 
     
-                requirementsFooterDiv.appendChild(reqItem);
+                requirementsContainerDiv.appendChild(reqItem);
             }
         });
-        nobleEl.appendChild(requirementsFooterDiv);
+        artworkAreaDiv.appendChild(requirementsContainerDiv); 
+        nobleEl.appendChild(artworkAreaDiv); 
     
         return nobleEl;
     }
@@ -857,9 +857,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (player.type === 'ai') {
             const badgeSpan = document.createElement('span');
             badgeSpan.classList.add('ai-badge');
-            badgeSpan.innerHTML = SVG_ICONS.gear || '⚙️'; // Use gear icon or fallback
+            badgeSpan.innerHTML = SVG_ICONS.gear || '⚙️'; 
             nameSpan.appendChild(badgeSpan);
-            nameSpan.appendChild(document.createTextNode(" ")); // Space after badge
+            nameSpan.appendChild(document.createTextNode(" ")); 
         }
         nameSpan.appendChild(document.createTextNode(player.name));
 
@@ -901,7 +901,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const bonusHeader = document.createElement('h4');
         bonusHeader.textContent = 'Bonuses';
         const bonusContainer = document.createElement('div');
-        bonusContainer.classList.add('player-bonuses-display'); // Renamed class
+        bonusContainer.classList.add('player-bonuses-display'); 
         let hasBonuses = false;
         GEM_TYPES.forEach(gemType => {
             const count = player.bonuses[gemType];
@@ -939,7 +939,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (player.nobles.length > 0) {
              player.nobles.forEach(nobleData => {
                 const nobleEl = createNobleElement(nobleData);
-                // Style applied via CSS: .player-nobles-display .noble
                 playerNoblesContainer.appendChild(nobleEl);
              });
         } else {
@@ -968,7 +967,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const gemType = gemEl.dataset.gemType;
          if (!isGemClickable(gemType, gemEl.classList.contains('selected'))) {
-             if (!gemEl.classList.contains('selected')) return; // If not clickable AND not selected, do nothing.
+             if (!gemEl.classList.contains('selected')) return; 
          }
         handleGemClick(gemType, gemEl);
     }
@@ -1016,13 +1015,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         currentAction = 'SELECTING_GEMS';
     
-        const isSelectedVisual = clickedGemEl.classList.contains('selected');
-        // Check based on logical selection state (selectedGemTypes) rather than just visual state of the clicked element
-        // This is because multiple DOM elements might represent the same gem type in bank (though current impl. uses one with count)
         const occurrencesInSelection = selectedGemTypes.filter(g => g === gemType).length;
     
         if (occurrencesInSelection > 0) { // Gem type is logically selected, try to deselect
-            if (occurrencesInSelection === 2) { // It's a pair
+            if (occurrencesInSelection === 2 && selectedGemTypes.filter(g => g === gemType).length === 2) { // It's a pair of this specific gemType
                 selectedGemTypes = selectedGemTypes.filter(g => g !== gemType); // Remove both
             } else { // It's a single one (either alone or with other different gems)
                 const index = selectedGemTypes.indexOf(gemType);
@@ -1050,17 +1046,21 @@ document.addEventListener('DOMContentLoaded', () => {
     
         // Visual Update
         gemBankContainer.querySelectorAll('.gem.selected').forEach(el => el.classList.remove('selected'));
-        const gemsToVisuallySelect = new Set();
+        
+        // Logic for visually selecting based on selectedGemTypes
+        // If it's a pair (e.g., ['red', 'red']), all 'red' bank gems get 'selected'
+        // Otherwise, for each unique type in selectedGemTypes, its bank gems get 'selected'
+        const typesToVisuallyMark = new Set();
         if (selectedGemTypes.length === 2 && selectedGemTypes[0] === selectedGemTypes[1]) {
-            gemsToVisuallySelect.add(selectedGemTypes[0]);
+             typesToVisuallyMark.add(selectedGemTypes[0]);
         } else {
-            selectedGemTypes.forEach(typeInSelection => {
-                gemsToVisuallySelect.add(typeInSelection);
-            });
+             selectedGemTypes.forEach(type => typesToVisuallyMark.add(type));
         }
-        gemsToVisuallySelect.forEach(typeToSelect => {
-            gemBankContainer.querySelectorAll(`.gem[data-gem-type='${typeToSelect}']`).forEach(el => el.classList.add('selected'));
+
+        typesToVisuallyMark.forEach(typeToMark => {
+            gemBankContainer.querySelectorAll(`.gem[data-gem-type='${typeToMark}']`).forEach(el => el.classList.add('selected'));
         });
+        
     
         if (selectedGemTypes.length === 0) {
             currentAction = null;
@@ -1214,7 +1214,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (count === 3 && uniqueCount === 3) return gems.every(type => bank[type] >= 1);
         if (count === 2 && uniqueCount === 1) return bank[gems[0]] >= MIN_GEMS_FOR_TAKE_TWO;
         if (count === 2 && uniqueCount === 2) return gems.every(type => bank[type] >= 1);
-        if (count === 1) return bank[gems[0]] >= 1; // Allow taking one gem if it's the only one selected
+        if (count === 1) return bank[gems[0]] >= 1; 
         return false;
     }
 
@@ -1669,7 +1669,7 @@ Based on your analysis and the valid hints, provide ONLY the single JSON object 
         if (nobleChoiceOverlay) nobleChoiceOverlay.classList.add('hidden');
         if (awardNoble(player, chosenNoble)) { renderNobles(); renderPlayerArea(player.id); }
         if (callback) callback();
-        updateClickableState(); // Ensure main UI is re-enabled
+        updateClickableState(); 
     }
 
     function checkForGemLimit(player, callback) {
